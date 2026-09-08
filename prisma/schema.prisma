@@ -1,0 +1,263 @@
+// Prisma schema for Amdern Properties SMC Limited Real Estate Portal
+// Supports PostgreSQL with PostGIS for spatial radius queries
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../server/node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum Role {
+  SEEKER
+  OWNER
+  AGENT
+  DEVELOPER
+  ADMIN
+}
+
+enum AdType {
+  IMAGE
+  SCRIPT
+}
+
+enum ListingType {
+  SALE
+  RENT
+  SHORTLET
+  JV
+}
+
+enum PropertyCategory {
+  HOUSES
+  FLATS
+  LAND
+  COMMERCIAL
+  OFFICES
+  SHORTLETS
+  VEHICLES
+}
+
+model User {
+  id                 String     @id @default(uuid())
+  name               String
+  email              String     @unique
+  password           String?    // Nullable for Google OAuth users
+  phone              String?
+  role               Role       @default(SEEKER)
+  isVerified         Boolean    @default(false)
+  avatarUrl          String?
+  googleId           String?    @unique
+  resetToken         String?
+  resetTokenExpires  DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  // —— Data Privacy & Consent (Uganda Data Protection and Privacy Act, 2019) ——
+  // Records that the user has read and agreed to the Privacy Policy at signup.
+  // The timestamp captures the exact moment consent was given (Article 9 — Consent).
+  privacyPolicyAgreed Boolean    @default(false)
+  privacyAgreedAt     DateTime?  // Set to now() only when privacyPolicyAgreed is true
+  // Separate, optional marketing consent for promotional communications (opt-in).
+  marketingConsent    Boolean    @default(false)
+  marketingConsentAt  DateTime?  // Timestamp of the most recent marketing-consent change
+
+  subscriptionPlan     String?
+  subscriptionStatus   String   @default("inactive")
+  subscriptionExpiresAt DateTime?
+
+  properties         Property[]
+  searchAlerts       SearchAlert[]
+  inquiries          Inquiry[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model PaymentTransaction {
+  id                    String   @id @default(uuid())
+  userId                String
+  userEmail             String?
+  type                  String
+  item                  String
+  amount                Float
+  currency              String   @default("UGX")
+  method                String
+  provider              String   @default("iotec-pay")
+  providerTransactionId String?  @unique
+  externalId            String   @unique
+  status                String   @default("Pending")
+  statusCode            String?
+  statusMessage         String?
+  payer                 String?
+  payerName             String?
+  period                String?
+  listingId             String?
+  listingRef            String?
+  redirectUrl           String?
+  cardRedirectUrl       String?
+  metadata              String?
+  fulfillmentStatus     String   @default("Pending")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  paidAt                DateTime?
+
+  @@index([userId, createdAt])
+  @@index([externalId])
+  @@index([providerTransactionId])
+}
+
+model Property {
+  id               String           @id @default(uuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  slug             String           @unique
+  price            Float
+  currency         String           @default("UGX")
+  bedrooms         Int              @default(0)
+  bathrooms        Int              @default(0)
+  toilets          Int              @default(1)
+  parking          Int              @default(0)
+  sizeSqm          Float?
+  plotSize         String?
+  description      String
+  propertyType     String           @default("Apartment")
+  category         PropertyCategory @default(FLATS)
+  listingType      ListingType      @default(RENT)
+  period           String?          // e.g. "month", "year", "night"
+  status           String           @default("active") // "active", "pending", "sold", "rented"
+  moderationStatus String           @default("approved") // "approved", "pending", "flagged", "rejected"
+  isVerified       Boolean          @default(false)
+  isFeatured       Boolean          @default(false)
+  featuredUntil    DateTime?
+  district         String           @default("Kampala")
+  area             String           @default("Central")
+  region           String           @default("Central")
+  lat              Float?
+  lng              Float?
+  amenities        String           @default("[]")
+  features         String           @default("[]")
+  viewsCount       Int              @default(0)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  images           PropertyImage[]
+  inquiries        Inquiry[]
+  analyticsEvents  AnalyticsEvent[]
+
+  @@index([slug])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([district])
+  @@index([category])
+  @@index([listingType])
+  @@index([lat, lng])
+}
+
+model PropertyImage {
+  id         String   @id @default(uuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  imageUrl   String
+  webpUrl    String?
+  thumbUrl   String?
+  isPrimary  Boolean  @default(false)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([propertyId])
+  @@index([sortOrder])
+}
+
+model AdPlacement {
+  id          String    @id @default(uuid())
+  title       String
+  slot        String    // e.g., "search_feed", "sidebar_rect", "homepage_hero_bottom"
+  adType      AdType    @default(IMAGE)
+  imageUrl    String?
+  targetUrl   String?
+  adCode      String?   // Custom HTML/JS script code if adType is SCRIPT
+  isActive    Boolean   @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  impressions Int       @default(0)
+  clicks      Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slot])
+  @@index([isActive])
+}
+
+// —— Data Privacy & Subject Rights (Uganda DPPA 2019, Articles 10–12) ——
+// Inquiry records capture enquiries from property seekers about a listing.
+// Used by the Data Subject Access Request (DSAR) export and by the admin dashboard.
+model Inquiry {
+  id          String    @id @default(uuid())
+  propertyId  String?
+  property    Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  userId      String?   // Seeker who submitted the inquiry (may be anonymous)
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name        String
+  email       String
+  phone       String?
+  message     String
+  channel     String    @default("form") // "form", "whatsapp", "phone"
+  status      String    @default("new")  // "new", "contacted", "replied", "in_progress", "closed"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([propertyId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// SearchAlert records saved property searches for registered seekers.
+// Used for automated alert emails and the DSAR export.
+model SearchAlert {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  query       String     @default("{}") // Filter criteria (location, price, beds, etc.)
+  frequency   String   @default("weekly") // "daily", "weekly", "monthly"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+// AnalyticsEvent records anonymised interaction events for the admin dashboard.
+// Personal identifiers are NEVER stored — only hashes and categories (Article 15 — Data Minimisation).
+model AnalyticsEvent {
+  id          String   @id @default(uuid())
+  eventType   String   // "property_view", "whatsapp_click", "call_click", "page_view", "search"
+  propertyId  String?
+  property    Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  ipHash      String?  // SHA-256 hash of IP (not stored in plaintext)
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([eventType, createdAt])
+  @@index([propertyId])
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String   // Recipient (admin or agent)
+  title       String
+  message     String
+  type        String   @default("info") // "listing", "enquiry", "alert", "info"
+  read        Boolean  @default(false)
+  relatedListingId String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
+}

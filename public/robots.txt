@@ -1,0 +1,34 @@
+# ==============================================================================
+# AMDERN PROPERTIES SMC LIMITED — Robots.txt
+# Uganda's Premier Real Estate & Property Marketplace
+# ==============================================================================
+
+User-agent: *
+Allow: /
+Allow: /property/
+Allow: /for-sale/
+Allow: /for-rent/
+Allow: /agents/
+Allow: /developers/
+Allow: /blog/
+Allow: /search/
+Allow: /property-media/
+Allow: /sitemap.xml
+
+# Disallow private user portals, auth, and admin moderation suites
+Disallow: /admin
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /signin
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /auth/
+Disallow: /*?*token=
+Disallow: /*?*session=
+
+# Host & Dynamic XML Sitemap location
+Host: https://amdernpropertiessmclimited.com
+Sitemap: https://amdernpropertiessmclimited.com/sitemap.xml

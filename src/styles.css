@@ -1,0 +1,456 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-foreground-strong: var(--foreground-strong);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-bg: var(--accent-bg);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
+  --color-ink-muted: var(--ink-muted);
+  --color-divider: var(--divider);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-focus-ring: var(--focus-ring);
+  --color-on-dark-10: var(--on-dark-10);
+  --color-on-dark-20: var(--on-dark-20);
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+  --color-emerald-50: #ecfdf5;
+  --color-emerald-100: #d1fae5;
+  --color-emerald-200: #a7f3d0;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
+  --color-rose-50: #fff1f2;
+  --color-rose-100: #ffe4e6;
+  --color-rose-200: #fecdd3;
+  --color-rose-500: #f43f5e;
+  --color-rose-600: #e11d48;
+  --color-rose-700: #be123c;
+  --color-red-50: #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --shadow-card: 0 1px 2px oklch(0.2 0.03 265 / 0.06), 0 8px 24px oklch(0.2 0.03 265 / 0.08);
+  --shadow-pop: 0 12px 40px oklch(0.2 0.03 265 / 0.16);
+  --shadow-popover: 0 12px 40px oklch(0.2 0.03 265 / 0.12);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #ffffff;
+  --foreground: #64748b;
+  --foreground-strong: #1e293b;
+  --card: #ffffff;
+  --card-foreground: #1e293b;
+  --popover: #ffffff;
+  --popover-foreground: #1e293b;
+  --primary: #df3f2f;
+  --primary-hover: #c93629;
+  --primary-foreground: #ffffff;
+  --secondary: #f8f8fa;
+  --secondary-foreground: #1e293b;
+  --muted: #f8f8fa;
+  --muted-foreground: #7b8494;
+  --accent: #c28b3f;
+  --accent-foreground: #634515;
+  --accent-bg: #fff9e9;
+  --destructive: #d92727;
+  --destructive-foreground: #ffffff;
+  --success: #16834c;
+  --success-bg: #edfaf2;
+  --border: #e5e7eb;
+  --input: #e1e4e8;
+  --ring: #df3f2f;
+  --ink: #1e293b;
+  --ink-foreground: #fafafa;
+  --ink-muted: #aeb5c0;
+  --divider: #e5e7eb;
+  --surface-1: #f8f8fa;
+  --surface-2: #f0f1f3;
+  --focus-ring: rgba(223, 63, 47, 0.4);
+  --on-dark-10: rgba(255, 255, 255, 0.1);
+  --on-dark-20: rgba(255, 255, 255, 0.2);
+
+  /* Use the richer theme on browsers that support modern color syntax. */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.42 0.02 265);
+  --foreground-strong: oklch(0.24 0.03 265);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.03 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.03 265);
+  --primary: oklch(0.56 0.19 22);
+  --primary-hover: oklch(0.5 0.18 22);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.97 0.005 265);
+  --secondary-foreground: oklch(0.24 0.03 265);
+  --muted: oklch(0.97 0.005 265);
+  --muted-foreground: oklch(0.55 0.02 265);
+  --accent: oklch(0.62 0.15 62);
+  --accent-foreground: oklch(0.3 0.09 62);
+  --accent-bg: oklch(0.96 0.05 90);
+  --destructive: oklch(0.52 0.2 25);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.52 0.13 150);
+  --success-bg: oklch(0.95 0.04 150);
+  --border: oklch(0.92 0.006 265);
+  --input: oklch(0.9 0.006 265);
+  --ring: oklch(0.56 0.19 22);
+  --ink: oklch(0.24 0.03 265);
+  --ink-foreground: oklch(0.98 0.002 265);
+  --ink-muted: oklch(0.7 0.02 265);
+  --divider: oklch(0.92 0.006 265);
+  --surface-1: oklch(0.97 0.005 265);
+  --surface-2: oklch(0.94 0.005 265);
+  --focus-ring: oklch(0.56 0.19 22 / 0.4);
+  --on-dark-10: oklch(1 0 0 / 0.1);
+  --on-dark-20: oklch(1 0 0 / 0.2);
+}
+
+.dark {
+  --background: oklch(0.18 0.02 265);
+  --foreground: oklch(0.85 0.01 265);
+  --foreground-strong: oklch(0.95 0.01 265);
+  --card: oklch(0.22 0.02 265);
+  --card-foreground: oklch(0.95 0.01 265);
+  --popover: oklch(0.22 0.02 265);
+  --popover-foreground: oklch(0.95 0.01 265);
+  --primary: oklch(0.56 0.19 22);
+  --primary-hover: oklch(0.5 0.18 22);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.24 0.02 265);
+  --secondary-foreground: oklch(0.9 0.01 265);
+  --muted: oklch(0.24 0.02 265);
+  --muted-foreground: oklch(0.7 0.02 265);
+  --accent: oklch(0.62 0.15 62);
+  --accent-foreground: oklch(0.3 0.09 62);
+  --accent-bg: oklch(0.28 0.05 90);
+  --destructive: oklch(0.52 0.2 25);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.52 0.13 150);
+  --success-bg: oklch(0.2 0.04 150);
+  --border: oklch(0.32 0.02 265);
+  --input: oklch(0.32 0.02 265);
+  --ring: oklch(0.56 0.19 22);
+  --ink: oklch(0.95 0.01 265);
+  --ink-foreground: oklch(0.18 0.02 265);
+  --ink-muted: oklch(0.7 0.02 265);
+  --divider: oklch(0.32 0.02 265);
+  --surface-1: oklch(0.24 0.02 265);
+  --surface-2: oklch(0.28 0.02 265);
+  --focus-ring: oklch(0.56 0.19 22 / 0.4);
+  --on-dark-10: oklch(1 0 0 / 0.1);
+  --on-dark-20: oklch(1 0 0 / 0.2);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  html {
+    overflow-x: hidden;
+  }
+
+  img,
+  svg {
+    max-width: 100%;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--color-foreground-strong);
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility container-page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 1280px;
+  padding-inline: 1rem;
+}
+
+@utility max-w-content {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+}
+
+@utility surface-card {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+}
+
+@utility rounded-pill {
+  border-radius: 9999px;
+}
+
+@utility btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.125rem;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+  cursor: pointer;
+}
+
+@utility btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+}
+
+@utility btn-primary-hover {
+  background-color: var(--color-primary-hover);
+}
+
+@utility btn-ink {
+  background-color: var(--color-ink);
+  color: var(--color-ink-foreground);
+}
+
+@utility btn-outline {
+  background-color: var(--color-background);
+  color: var(--color-foreground-strong);
+  border: 1px solid var(--color-input);
+}
+
+@utility bg-surface-1 {
+  background-color: var(--color-surface-1);
+}
+
+@utility bg-surface-2 {
+  background-color: var(--color-surface-2);
+}
+
+@utility border-divider {
+  border-color: var(--color-divider);
+}
+
+@utility shadow-popover {
+  box-shadow: var(--shadow-popover);
+}
+
+@utility text-foreground-muted {
+  color: var(--color-muted-foreground);
+}
+
+@utility text-muted-foreground-2 {
+  color: oklch(0.45 0.02 265);
+}
+
+@utility border-border-strong {
+  border-color: oklch(0.78 0.006 265);
+}
+
+@utility focus-ring-focus-ring {
+  --tw-ring-color: var(--color-focus-ring);
+}
+
+@supports not (color: oklch(0 0 0)) {
+  :root {
+    --background: #ffffff;
+    --foreground: #64748b;
+    --foreground-strong: #1e293b;
+    --card: #ffffff;
+    --card-foreground: #1e293b;
+    --popover: #ffffff;
+    --popover-foreground: #1e293b;
+    --primary: #df3f2f;
+    --primary-hover: #c93629;
+    --primary-foreground: #ffffff;
+    --secondary: #f8f8fa;
+    --secondary-foreground: #1e293b;
+    --muted: #f8f8fa;
+    --muted-foreground: #7b8494;
+    --accent: #c28b3f;
+    --accent-foreground: #634515;
+    --accent-bg: #fff9e9;
+    --destructive: #d92727;
+    --destructive-foreground: #ffffff;
+    --success: #16834c;
+    --success-bg: #edfaf2;
+    --border: #e5e7eb;
+    --input: #e1e4e8;
+    --ring: #df3f2f;
+    --ink: #1e293b;
+    --ink-foreground: #fafafa;
+    --ink-muted: #aeb5c0;
+    --divider: #e5e7eb;
+    --surface-1: #f8f8fa;
+    --surface-2: #f0f1f3;
+    --focus-ring: rgba(223, 63, 47, 0.4);
+    --on-dark-10: rgba(255, 255, 255, 0.1);
+    --on-dark-20: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Universal Mobile Navigation Bars: 100% Solid & Fully Opaque                */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 1279px) {
+  /* Mobile Navigation Dock: 100% solid, zero transparency across all phones */
+  nav[aria-label="Mobile Navigation Dock"] {
+    background-color: var(--color-card, #ffffff) !important;
+    opacity: 1 !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .dark nav[aria-label="Mobile Navigation Dock"] {
+    background-color: var(--color-card, #0f172a) !important;
+  }
+
+  /* Mobile Top Sticky Headers: 100% solid, zero transparency */
+  header.sticky.top-0 {
+    background-color: var(--color-card, #ffffff) !important;
+    opacity: 1 !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .dark header.sticky.top-0 {
+    background-color: var(--color-card, #0f172a) !important;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Universal Mobile Layout & Touch Screen Optimizations (<= 640px)            */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  main {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  main > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .container-page,
+  .max-w-content {
+    min-width: 0;
+    padding-inline: 0.875rem;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    max-width: 100%;
+  }
+
+  /* Bottom Dock Touch Targets & Spacing */
+  nav[aria-label="Mobile Navigation Dock"] > div {
+    padding-inline: 0.25rem;
+  }
+
+  nav[aria-label="Mobile Navigation Dock"] a,
+  nav[aria-label="Mobile Navigation Dock"] button {
+    min-width: 0;
+    padding-inline: 0.25rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Mobile Hero Container Spacing */
+  main section.relative.overflow-hidden.bg-slate-900 {
+    min-height: 0;
+    padding-block: 1.25rem;
+  }
+
+  main section.relative.overflow-hidden.bg-slate-900 > div.relative {
+    gap: 0.75rem;
+  }
+
+  main section.relative.overflow-hidden.bg-slate-900 form.surface-card {
+    padding: 0.75rem;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Extra Compact Mobile Devices (<= 360px: iPhone SE 1st gen, small Android)  */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 360px) {
+  .container-page,
+  .max-w-content {
+    padding-inline: 0.625rem;
+  }
+
+  nav[aria-label="Mobile Navigation Dock"] > div {
+    padding-inline: 0.125rem;
+  }
+
+  nav[aria-label="Mobile Navigation Dock"] a,
+  nav[aria-label="Mobile Navigation Dock"] button {
+    padding-inline: 0.125rem;
+  }
+
+  nav[aria-label="Mobile Navigation Dock"] span {
+    font-size: 10px;
+  }
+}
