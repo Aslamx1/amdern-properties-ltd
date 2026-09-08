@@ -1,6 +1,6 @@
 [build]
   command = "npx nitro build --preset=netlify"
-  publish = ".output/public"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "20"
