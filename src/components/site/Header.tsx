@@ -215,38 +215,38 @@ function MobileHeader() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-white dark:bg-card px-3 sm:px-4 xl:hidden shadow-xs">
+    <header className="sticky top-0 z-40 flex h-12 items-center justify-between border-b border-border bg-white dark:bg-card px-2.5 sm:px-4 xl:hidden shadow-xs">
       <Logo />
 
       <div className="flex items-center gap-1.5">
         <a
           href="tel:+256702104499"
-          className="inline-flex size-9 items-center justify-center rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+          className="inline-flex size-8 items-center justify-center rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
           aria-label="Call Amdern Office"
           title="Call office"
         >
-          <Phone className="h-4 w-4" />
+          <Phone className="h-3.5 w-3.5" />
         </a>
 
         <a
           href="https://wa.me/256702104499?text=Hello%20AMDERN%20PROPERTIES%2C%20I%20am%20inquiring%20about%20a%20property."
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex size-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+          className="inline-flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
           aria-label="Chat on WhatsApp"
           title="WhatsApp chat"
         >
-          <MessageSquare className="h-4 w-4" />
+          <MessageSquare className="h-3.5 w-3.5" />
         </a>
 
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="inline-flex size-9 items-center justify-center rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors shadow-2xs ml-0.5"
+          className="inline-flex size-8 items-center justify-center rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors shadow-2xs ml-0.5"
           aria-label="Open mobile navigation menu"
           aria-expanded={drawerOpen}
         >
-          <Menu className="h-4.5 w-4.5" />
+          <Menu className="h-4 w-4" />
         </button>
       </div>
 

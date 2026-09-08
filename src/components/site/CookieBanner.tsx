@@ -71,15 +71,14 @@ export function CookieBanner() {
   if (!showBanner) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur sm:p-6">
-      <div className="mx-auto flex max-w-content flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex gap-3">
-          <Cookie className="h-5 w-5 shrink-0 text-slate-600" />
-          <p className="text-xs text-slate-600">
-            We use essential session cookies to keep you logged in and to remember your search
-            preferences (location, currency, saved listings). We do <strong>not</strong> use
-            advertising or third-party tracking cookies. By clicking <strong>Accept</strong> you
-            agree to our{" "}
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 p-3 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur sm:p-6">
+      <div className="mx-auto flex max-w-content flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="flex gap-2.5 sm:gap-3">
+          <Cookie className="mt-0.5 h-4 w-4 shrink-0 text-slate-600 sm:h-5 sm:w-5" />
+          <p className="text-[11px] leading-5 text-slate-600 sm:text-xs">
+            We use essential session cookies to keep you logged in and remember your search
+            preferences. We do <strong>not</strong> use advertising or third-party tracking cookies.
+            By clicking <strong>Accept</strong> you agree to our{" "}
             <Link to="/privacy-policy" className="font-semibold text-slate-900 underline">
               Privacy Policy
             </Link>{" "}
@@ -90,16 +89,16 @@ export function CookieBanner() {
             , in accordance with the Uganda Data Protection and Privacy Act, 2019.
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 sm:pt-1">
           <button
             onClick={() => setConsent("rejected")}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 px-3 py-2 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 sm:px-4 sm:text-xs"
           >
             Reject non-essential
           </button>
           <button
             onClick={() => setConsent("accepted")}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+            className="rounded-lg bg-slate-900 px-3 py-2 text-[10px] font-semibold text-white hover:bg-slate-800 sm:px-4 sm:text-xs"
           >
             Accept all
           </button>

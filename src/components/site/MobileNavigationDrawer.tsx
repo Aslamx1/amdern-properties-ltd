@@ -242,10 +242,10 @@ export function MobileNavigationDrawer({
         className="fixed inset-y-0 left-0 z-[70] flex h-full w-[88vw] max-w-[380px] flex-col bg-white text-slate-800 shadow-2xl transition-transform duration-300 ease-out sm:max-w-[400px] border-r border-slate-200 animate-in slide-in-from-left duration-200"
       >
         {/* Drawer Header: ADN Logo & Company Name */}
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-3.5 sm:px-5 bg-white">
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-3 sm:px-4 bg-white">
           <Link to="/" onClick={onClose} className="flex min-w-0 items-center gap-2.5 sm:gap-3 group">
             {/* ADN Logo Emblem */}
-            <div className="relative flex size-10 items-center justify-center rounded-xl bg-slate-50 p-1 shadow-xs border border-slate-200 shrink-0">
+            <div className="relative flex size-9 items-center justify-center rounded-xl bg-slate-50 p-1 shadow-xs border border-slate-200 shrink-0">
               <img
                 src="/adn-logo.png"
                 alt="ADN Amdern Properties"
@@ -269,28 +269,28 @@ export function MobileNavigationDrawer({
             type="button"
             onClick={onClose}
             aria-label="Close navigation menu"
-            className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 ml-2"
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 ml-2"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Scrollable Drawer Body */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-5 py-5 space-y-6 scrollbar-thin scrollbar-thumb-slate-300">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-3.5 sm:px-4 py-3.5 space-y-4 scrollbar-thin scrollbar-thumb-slate-300">
           {/* Top Auth Links Section */}
-          <div className="space-y-2.5">
-            <div className="flex flex-col gap-2.5">
+          <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Link
                 to="/signin"
                 onClick={onClose}
-                className="w-full flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+                className="w-full flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
               >
                 <User className="size-4 mr-2" /> Sign in
               </Link>
               <Link
                 to="/register"
                 onClick={onClose}
-                className="w-full flex items-center justify-center rounded-xl px-4 py-3 text-sm font-extrabold text-white shadow-sm hover:opacity-90"
+                className="w-full flex items-center justify-center rounded-xl px-3 py-2.5 text-sm font-extrabold text-white shadow-sm hover:opacity-90"
                 style={{ backgroundColor: "var(--primary, #dc2626)" }}
               >
                 <span>Register</span>
@@ -312,10 +312,10 @@ export function MobileNavigationDrawer({
                     to={item.to}
                     search={item.search as never}
                     onClick={onClose}
-                    className="flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-100 hover:text-slate-950 transition-colors"
+                    className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-100 hover:text-slate-950 transition-colors"
                   >
-                    <span className="flex items-center gap-3.5">
-                      <Icon className="size-4.5 text-slate-600 group-hover:text-primary" />
+                    <span className="flex items-center gap-3">
+                      <Icon className="size-4 text-slate-600 group-hover:text-primary" />
                       <span>{item.label}</span>
                     </span>
                     <ChevronRight className="size-4 text-slate-400" />
@@ -329,15 +329,15 @@ export function MobileNavigationDrawer({
                     type="button"
                     onClick={() => toggleTab(item.id)}
                     aria-expanded={isExpanded}
-                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-sm font-semibold transition-colors ${
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
                       isExpanded
                         ? "bg-slate-100 text-slate-950"
                         : "text-slate-800 hover:bg-slate-50 hover:text-slate-950"
                     }`}
                   >
-                    <span className="flex items-center gap-3.5">
+                    <span className="flex items-center gap-3">
                       <Icon
-                        className={`size-4.5 ${isExpanded ? "text-primary font-bold" : "text-slate-600"}`}
+                        className={`size-4 ${isExpanded ? "text-primary font-bold" : "text-slate-600"}`}
                       />
                       <span>{item.label}</span>
                     </span>
@@ -350,14 +350,14 @@ export function MobileNavigationDrawer({
 
                   {/* Accordion Sub-items */}
                   {isExpanded && item.subItems && (
-                    <div className="ml-4 pl-4 my-1.5 space-y-1 border-l-2 border-slate-200">
+                    <div className="ml-3 pl-3 my-1.5 space-y-1 border-l-2 border-slate-200">
                       {item.subItems.map((subItem, idx) => (
                         <Link
                           key={idx}
                           to={subItem.to}
                           search={subItem.search as never}
                           onClick={onClose}
-                          className="flex items-center justify-between rounded-lg px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                          className="flex items-center justify-between rounded-lg px-2.5 py-2 text-[11px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
                         >
                           <span>{subItem.label}</span>
                           <ChevronRight className="size-3 text-slate-400" />

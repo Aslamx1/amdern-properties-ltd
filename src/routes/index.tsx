@@ -161,7 +161,7 @@ function Home() {
   return (
     <Page>
       {/* Hero Section with property photo slider — neutral dark overlay (no red) */}
-      <section className="relative overflow-hidden bg-slate-900 py-6 sm:py-10 lg:py-14">
+      <section className="relative overflow-hidden bg-slate-900 py-4 sm:py-10 lg:py-14">
         {/* Background photo slider — real /property-media/* photos */}
         <div className="absolute inset-0">
           {featured.map((l, i) => (
@@ -178,7 +178,7 @@ function Home() {
                   (e.currentTarget as HTMLImageElement).src =
                     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231e293b'/%3E%3Cstop offset='1' stop-color='%230f172a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect fill='url(%23g)' width='1600' height='900'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='white' font-family='sans-serif' font-size='42' font-weight='bold'%3EAMDERN PROPERTIES%3C/text%3E%3C/svg%3E";
                 }}
-                className="h-full w-full object-cover"
+                className="h-full w-full scale-[1.08] object-cover object-center sm:scale-100"
               />
             </div>
           ))}
@@ -187,22 +187,22 @@ function Home() {
         </div>
 
         {/* Hero Content */}
-        <div className="relative mx-auto flex max-w-content flex-col items-center gap-3 px-3.5 text-center sm:gap-4 sm:px-6">
+        <div className="relative mx-auto flex max-w-content flex-col items-center gap-3 px-3 text-center sm:gap-4 sm:px-6">
           <span className="inline-flex items-center gap-2 rounded-pill border border-white/25 bg-white/10 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
             {SITE.tagline}
           </span>
 
-          <h1 className="max-w-2xl text-2xl font-extrabold leading-tight tracking-tight text-white drop-shadow-lg sm:text-3xl lg:text-4xl">
+          <h1 className="max-w-2xl text-[1.9rem] font-extrabold leading-tight tracking-tight text-white drop-shadow-lg sm:text-3xl lg:text-4xl">
             Find the right property
           </h1>
-          <p className="max-w-xl text-xs text-white/85 drop-shadow sm:text-sm">
+          <p className="max-w-xl text-[0.75rem] leading-5 text-white/85 drop-shadow sm:text-sm">
             Search thousands of homes, land and commercial property for sale and rent — across every
             major city in Uganda.
           </p>
 
           {/* Search Panel with solid backdrop */}
-          <div className="mx-auto w-full max-w-[1080px] rounded-2xl bg-white dark:bg-card p-2 sm:p-3 shadow-2xl border border-slate-200 dark:border-border">
+          <div className="mx-auto w-full max-w-[1080px] rounded-2xl bg-white dark:bg-card p-1.5 shadow-2xl ring-1 ring-slate-200/80 dark:ring-border sm:p-3">
             <SearchPanel initial={{ listing: "sale" }} />
           </div>
 

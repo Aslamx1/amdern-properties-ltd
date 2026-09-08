@@ -1,6 +1,8 @@
 {
+  "homepage": "https://Aslamx1.github.com/amdern-properties-ltd",
   "name": "amdern-properties-smc-limited",
   "private": true,
+  "packageManager": "npm@10.9.2",
   "sideEffects": false,
   "type": "module",
   "scripts": {
@@ -14,7 +16,8 @@
     "server:build": "npm --prefix server run build",
     "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.39",
@@ -103,6 +106,7 @@
     "prisma": "^6.19.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.2.0"
+    "vite": "^8.2.0",
+    "wrangler": "^4.131.0"
   }
 }

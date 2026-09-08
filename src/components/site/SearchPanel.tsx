@@ -69,14 +69,14 @@ export function SearchPanel({
   }
 
   return (
-    <form onSubmit={submit} className={compact ? "" : "surface-card p-3 shadow-pop sm:p-4"}>
-      <div className="mb-3 flex flex-wrap gap-1">
+    <form onSubmit={submit} className={compact ? "" : "surface-card p-2 shadow-pop sm:p-4"}>
+      <div className="mb-2 flex flex-wrap gap-1.5 sm:mb-3">
         {TABS.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setListing(t.key)}
-            className={`rounded-md px-3 py-2 text-xs font-bold transition-colors sm:px-3.5 sm:py-2 sm:text-sm ${
+            className={`rounded-md px-2.5 py-1.5 text-[11px] font-bold transition-colors sm:px-3.5 sm:py-2 sm:text-sm ${
               listing === t.key
                 ? "bg-ink text-ink-foreground"
                 : "bg-secondary text-foreground-strong hover:bg-border"
@@ -89,24 +89,24 @@ export function SearchPanel({
 
       <div className="grid gap-2 lg:grid-cols-[1.4fr_1fr_1fr_0.8fr_auto]">
         <label className="block">
-          <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px]">
             Location
           </span>
           <input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="region, district or town"
-            className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm font-bold text-foreground-strong placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-bold text-foreground-strong placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-ring sm:py-2.5"
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px]">
             Property type
           </span>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm font-bold text-foreground-strong focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-bold text-foreground-strong focus:outline-none focus:ring-2 focus:ring-ring sm:py-2.5"
           >
             <option value="">Any type</option>
             {PROPERTY_TYPE_GROUPS.map((g) => (
@@ -121,15 +121,15 @@ export function SearchPanel({
           </select>
         </label>
         <div>
-          <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px]">
             Price range
           </span>
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <select
               value={min}
               onChange={(e) => setMin(Number(e.target.value))}
               aria-label="Min price"
-              className="w-full rounded-md border border-input bg-background px-2 py-2.5 text-sm font-bold text-foreground-strong"
+              className="w-full rounded-md border border-input bg-background px-2 py-2 text-sm font-bold text-foreground-strong sm:py-2.5"
             >
               {PRICES.map((p) => (
                 <option key={p} value={p}>
@@ -141,7 +141,7 @@ export function SearchPanel({
               value={max}
               onChange={(e) => setMax(Number(e.target.value))}
               aria-label="Max price"
-              className="w-full rounded-md border border-input bg-background px-2 py-2.5 text-sm font-bold text-foreground-strong"
+              className="w-full rounded-md border border-input bg-background px-2 py-2 text-sm font-bold text-foreground-strong sm:py-2.5"
             >
               {PRICES.map((p) => (
                 <option key={p} value={p}>
@@ -152,13 +152,13 @@ export function SearchPanel({
           </div>
         </div>
         <label className="block">
-          <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px]">
             Bedrooms
           </span>
           <select
             value={beds}
             onChange={(e) => setBeds(Number(e.target.value))}
-            className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm font-bold text-foreground-strong"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-bold text-foreground-strong sm:py-2.5"
           >
             <option value={0}>Any</option>
             {[1, 2, 3, 4, 5, 6].map((b) => (
@@ -171,7 +171,7 @@ export function SearchPanel({
         <div className="flex items-end">
           <button
             type="submit"
-            className="btn-base btn-primary hover:btn-primary-hover h-[42px] w-full lg:w-auto"
+            className="btn-base btn-primary hover:btn-primary-hover h-11 w-full lg:w-auto"
           >
             <Search className="h-4 w-4" /> Search
           </button>

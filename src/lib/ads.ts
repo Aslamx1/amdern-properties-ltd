@@ -57,8 +57,8 @@ export const FALLBACK_ADS: AdPlacement[] = [
 ];
 
 const API_BASE_URL = typeof window !== "undefined"
-  ? (import.meta.env["VITE_API_URL"] || "http://localhost:5000")
-  : "http://localhost:5000";
+  ? (import.meta.env["VITE_API_URL"] || window.location.origin)
+  : "";
 
 /**
  * Fetches active ads by slot from the backend API, falling back to local ads

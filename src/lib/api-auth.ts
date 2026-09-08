@@ -7,20 +7,20 @@
  */
 
 function getApiBaseUrl(): string {
-  if (typeof window === "undefined") {
-    return "http://localhost:5000";
-  }
-
   const configured = import.meta.env["VITE_API_URL"] as string | undefined;
   if (configured && configured.trim()) {
     return configured.replace(/\/$/, "");
+  }
+
+  if (typeof window === "undefined") {
+    return "";
   }
 
   if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
     return "";
   }
 
-  return "http://localhost:5000";
+  return window.location.origin;
 }
 
 const API_BASE_URL = getApiBaseUrl();

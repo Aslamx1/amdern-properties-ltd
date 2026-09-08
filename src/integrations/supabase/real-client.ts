@@ -2,24 +2,33 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] || import.meta.env["SUPABASE_URL"];
-const supabaseAnonKey = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || import.meta.env["SUPABASE_PUBLISHABLE_KEY"];
+const supabaseAnonKey =
+  import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || import.meta.env["SUPABASE_PUBLISHABLE_KEY"];
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Missing Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in your .env file."
+const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey);
+
+if (!hasSupabaseConfig) {
+  console.warn(
+    "Supabase environment variables are missing. The app will run in degraded mode until VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY are configured."
   );
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    detectSessionInUrl: true,
-    autoRefreshToken: true,
-    experimental: {
-      passkey: true,
+export const supabase = createClient<Database>(
+  supabaseUrl || "https://example.supabase.co",
+  supabaseAnonKey || "public-anon-key",
+  {
+    auth: {
+      persistSession: hasSupabaseConfig,
+      detectSessionInUrl: hasSupabaseConfig,
+      autoRefreshToken: hasSupabaseConfig,
+      experimental: {
+        passkey: true,
+      },
     },
   },
-});
+);
+
+export const isSupabaseConfigured = () => hasSupabaseConfig;
 
 export type { Database };
 
