@@ -36,8 +36,25 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Request failed" }));
-    throw new Error(err.error || `HTTP ${res.status}`);
+    let message = `HTTP ${res.status}`;
+    try {
+      const text = await res.text();
+      if (text) {
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed.error === "string") {
+          message = parsed.error;
+        } else if (parsed && typeof parsed.message === "string") {
+          message = parsed.message;
+        } else if (parsed && typeof parsed.details === "string") {
+          message = parsed.details;
+        } else {
+          message = text;
+        }
+      }
+    } catch {
+      message = "Request failed";
+    }
+    throw new Error(message || "Request failed");
   }
 
   return res.json() as Promise<T>;

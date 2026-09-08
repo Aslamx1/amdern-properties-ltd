@@ -716,8 +716,8 @@ export async function createAdminProperty(req: Request, res: Response): Promise<
         region: data.region,
         lat: data.lat || null,
         lng: data.lng || null,
-        amenities: data.amenities,
-        features: data.features,
+        amenities: JSON.stringify(data.amenities || []),
+        features: JSON.stringify(data.features || []),
         images:
           data.images && data.images.length > 0
             ? {

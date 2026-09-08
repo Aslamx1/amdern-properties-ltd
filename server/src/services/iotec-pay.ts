@@ -174,12 +174,13 @@ async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
-    const message =
-      typeof payload === "string"
-        ? payload
-        : typeof payload === "object" && payload !== null && "error" in payload
-          ? String((payload as { error?: unknown }).error)
-          : `ioTec Pay request failed with status ${response.status}`;
+    let message = `ioTec Pay request failed with status ${response.status}`;
+    if (typeof payload === "string") {
+      message = payload;
+    } else if (typeof payload === "object" && payload !== null) {
+      const p = payload as Record<string, unknown>;
+      message = String(p.message || p.error || p.detail || p.title || message);
+    }
     throw new IotecPayError(message || `ioTec Pay request failed with status ${response.status}`, response.status);
   }
 

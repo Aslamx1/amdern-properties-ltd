@@ -3,6 +3,8 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import path from "path";
+import bcrypt from "bcryptjs";
+import { Role } from "@prisma/client";
 import passport from "./config/passport";
 import prisma from "./config/db";
 import { getAllowedOrigins } from "./config/cors";
@@ -16,13 +18,51 @@ import paymentRouter from "./routes/payment.router";
 import privacyRouter from "./routes/privacy.router";
 import adminRouter from "./routes/admin.router";
 
-// Load environment variables
+// Load environment variables (supports running from root or server/)
 dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 const allowedOrigins = getAllowedOrigins();
+
+async function ensureDefaultAdminUser() {
+  const primaryEmail = "amdern@smc.com";
+  const fallbackEmail = "admin@amdernpropertiessmclimited.com";
+  const password = "amdern@";
+
+  const existing = await prisma.user.findFirst({
+    where: {
+      OR: [{ email: primaryEmail }, { email: fallbackEmail }],
+    },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  const created = await prisma.user.create({
+    data: {
+      name: "Amdern SMC Executive Admin",
+      email: primaryEmail,
+      password: passwordHash,
+      phone: "+256700000001",
+      role: Role.ADMIN,
+      isVerified: true,
+      avatarUrl: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200",
+      privacyPolicyAgreed: true,
+      privacyAgreedAt: new Date(),
+      marketingConsent: false,
+    },
+  });
+
+  console.log(`[Bootstrap] Created default admin user: ${created.email}`);
+  return created;
+}
 
 // CORS Configuration with HttpOnly cookie support
 app.use(
@@ -103,13 +143,20 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 // Start Server
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
+  try {
+    await ensureDefaultAdminUser();
+  } catch (error) {
+    console.error("[Bootstrap] Failed to create default admin user:", error);
+  }
+
   console.log(`====================================================`);
   console.log(`  Amdern Properties Backend API running on port ${PORT}`);
   console.log(`  Health Check: http://localhost:${PORT}/health`);
   console.log(`  Sitemap:      http://localhost:${PORT}/sitemap.xml`);
   console.log(`  Properties:   http://localhost:${PORT}/api/properties`);
   console.log(`  Ads:          http://localhost:${PORT}/api/ads`);
+  console.log(`  Admin Login:  amdern@smc.com / amdern@`);
   console.log(`====================================================`);
 });
 

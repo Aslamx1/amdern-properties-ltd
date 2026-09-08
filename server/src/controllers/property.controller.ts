@@ -91,8 +91,8 @@ export async function createProperty(req: Request, res: Response): Promise<void>
         region: data.region,
         lat: data.lat || null,
         lng: data.lng || null,
-        amenities: data.amenities,
-        features: data.features,
+        amenities: JSON.stringify(data.amenities || []),
+        features: JSON.stringify(data.features || []),
         images: data.images && data.images.length > 0
           ? {
               create: data.images.map((img, idx) => ({
@@ -253,10 +253,10 @@ export async function searchProperties(req: Request, res: Response): Promise<voi
     if (q) {
       const searchStr = String(q);
       where.OR = [
-        { title: { contains: searchStr, mode: "insensitive" } },
-        { description: { contains: searchStr, mode: "insensitive" } },
-        { district: { contains: searchStr, mode: "insensitive" } },
-        { area: { contains: searchStr, mode: "insensitive" } },
+        { title: { contains: searchStr } },
+        { description: { contains: searchStr } },
+        { district: { contains: searchStr } },
+        { area: { contains: searchStr } },
       ];
     }
 
@@ -269,7 +269,7 @@ export async function searchProperties(req: Request, res: Response): Promise<voi
     }
 
     if (district && district !== "all") {
-      where.district = { contains: String(district), mode: "insensitive" };
+      where.district = { contains: String(district) };
     }
 
     if (minPrice || maxPrice) {

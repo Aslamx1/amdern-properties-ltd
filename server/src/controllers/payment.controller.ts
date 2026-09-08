@@ -6,6 +6,7 @@ import {
   getCollectionStatus,
   initiateCollection,
   type CollectionResponse,
+  type Currency,
   type TransactionChargesCategory,
 } from "../services/iotec-pay";
 
@@ -15,11 +16,17 @@ const PAYMENT_ITEMS = {
     "Premium Plus": { amount: 450000, period: "/mo" },
   },
   promotion: {
-    "Featured Promotion": { amount: 75000 },
-    "Premium Plus Promotion": { amount: 100000 },
-    "Bump Up Promotion": { amount: 50000 },
+    "Featured Promotion": { amount: 75000, validAmounts: [75000] },
+    "Premium Plus Promotion": { amount: 250000, validAmounts: [100000, 250000] },
+    "Bump Up Promotion": { amount: 25000, validAmounts: [25000, 50000] },
   },
 } as const;
+
+type CatalogEntry = {
+  amount: number;
+  period?: string;
+  validAmounts?: readonly number[];
+};
 
 const initiateSchema = z.object({
   type: z.enum(["subscription", "promotion"]),
@@ -43,20 +50,31 @@ function terminalStatus(status?: string | null): boolean {
   return status === "Success" || status === "Failed" || status === "Cancelled" || status === "Rejected" || status === "RolledBack";
 }
 
-function getCatalogEntry(type: "subscription" | "promotion", item: string) {
-  return PAYMENT_ITEMS[type][item as keyof (typeof PAYMENT_ITEMS)[typeof type]] ?? null;
+function getCatalogEntry(type: "subscription" | "promotion", item: string): CatalogEntry | null {
+  if (type === "subscription") {
+    const entry = PAYMENT_ITEMS.subscription[item as keyof typeof PAYMENT_ITEMS.subscription];
+    return entry ? { amount: entry.amount, period: entry.period } : null;
+  }
+  if (type === "promotion") {
+    const entry = PAYMENT_ITEMS.promotion[item as keyof typeof PAYMENT_ITEMS.promotion];
+    return entry ? { amount: entry.amount, validAmounts: entry.validAmounts } : null;
+  }
+  return null;
 }
 
 function normalizePhone(value: string): string {
   const digits = value.replace(/\D/g, "");
-  if (digits.startsWith("256") && digits.length === 13) return digits.slice(3);
+  if (digits.startsWith("256") && digits.length === 12) return digits;
+  if (digits.startsWith("0") && digits.length === 10) return `256${digits.slice(1)}`;
+  if (digits.length === 9) return `256${digits}`;
   return digits;
 }
 
-function isHttpsUrl(value: string | undefined): value is string {
+function isHttpOrHttpsUrl(value: string | undefined): value is string {
   if (!value) return false;
   try {
-    return new URL(value).protocol === "https:";
+    const protocol = new URL(value).protocol;
+    return protocol === "https:" || protocol === "http:";
   } catch {
     return false;
   }
@@ -142,8 +160,8 @@ async function applyProviderStatus(
     status: provider.status,
   };
 
-  if (provider.statusCode !== undefined) data.statusCode = provider.statusCode;
-  if (provider.statusMessage !== undefined) data.statusMessage = provider.statusMessage;
+  if (provider.statusCode !== undefined) data.statusCode = provider.statusCode ?? undefined;
+  if (provider.statusMessage !== undefined) data.statusMessage = provider.statusMessage ?? undefined;
   if (provider.cardRedirectUrl !== undefined) data.cardRedirectUrl = provider.cardRedirectUrl;
   if (provider.redirectUrl !== undefined) data.redirectUrl = provider.redirectUrl;
   if (provider.status === "Success") data.paidAt = payment.paidAt ?? new Date();
@@ -163,6 +181,11 @@ function paymentError(res: Response, message: string, status = 500): void {
 
 export async function initiatePayment(req: Request, res: Response): Promise<void> {
   try {
+    if (!req.user) {
+      paymentError(res, "Authentication required", 401);
+      return;
+    }
+
     const parsed = initiateSchema.safeParse(req.body);
     if (!parsed.success) {
       paymentError(res, parsed.error.errors[0]?.message || "Invalid payment request", 400);
@@ -171,7 +194,12 @@ export async function initiatePayment(req: Request, res: Response): Promise<void
 
     const input = parsed.data;
     const catalogEntry = getCatalogEntry(input.type, input.item);
-    if (!catalogEntry || catalogEntry.amount !== input.amount) {
+    const isValidAmount =
+      Boolean(catalogEntry) &&
+      (catalogEntry?.amount === input.amount ||
+        Boolean(catalogEntry?.validAmounts && catalogEntry.validAmounts.includes(input.amount)));
+
+    if (!catalogEntry || !isValidAmount) {
       paymentError(res, "Payment amount does not match the selected product", 400);
       return;
     }
@@ -183,15 +211,6 @@ export async function initiatePayment(req: Request, res: Response): Promise<void
     ].filter((key) => !process.env[key] || !process.env[key]?.trim());
 
     if (missingProviderConfig.length > 0) {
-      await prisma.paymentTransaction.update({
-        where: { id: (await prisma.paymentTransaction.findFirst({ where: { userId: req.user.id, externalId: { startsWith: "amdern-" } }, orderBy: { createdAt: "desc" } }))?.id ?? "" },
-        data: {
-          status: "Failed",
-          statusCode: "payment_not_configured",
-          statusMessage: `Payment provider is not configured. Missing: ${missingProviderConfig.join(", ")}`,
-        },
-      }).catch(() => undefined);
-
       paymentError(
         res,
         `Payment provider is not configured. Missing: ${missingProviderConfig.join(", ")}`,
@@ -206,15 +225,24 @@ export async function initiatePayment(req: Request, res: Response): Promise<void
       return;
     }
 
-    const payer = input.method === "card" ? input.payer.trim().toLowerCase() : normalizePhone(input.payer);
+    const payer =
+      input.method === "card"
+        ? (input.payer.trim().toLowerCase() || req.user.email?.toLowerCase() || "")
+        : normalizePhone(input.payer);
+
     if (!payer) {
       paymentError(res, "Payer details are required", 400);
       return;
     }
 
+    if (input.method === "card" && !payer.includes("@")) {
+      paymentError(res, "A valid customer email address is required for card payments", 400);
+      return;
+    }
+
     const externalId = `amdern-${req.user.id.slice(0, 8)}-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
     const configuredRedirectUrl = process.env.IOTEC_PAY_REDIRECT_URL;
-    const redirectUrl = isHttpsUrl(configuredRedirectUrl) ? configuredRedirectUrl : undefined;
+    const redirectUrl = isHttpOrHttpsUrl(configuredRedirectUrl) ? configuredRedirectUrl : undefined;
     const chargesCategory: TransactionChargesCategory = "ChargeWallet";
     const metadata = {
       type: input.type,
@@ -250,7 +278,7 @@ export async function initiatePayment(req: Request, res: Response): Promise<void
         amount: input.amount,
         payer,
         payerName: input.payerName?.trim() || req.user.name,
-        currency: process.env.IOTEC_PAY_CURRENCY || "UGX",
+        currency: (process.env.IOTEC_PAY_CURRENCY || "UGX") as Currency,
         walletId,
         externalId,
         payerNote: `Amdern Properties ${input.type} payment`,
@@ -271,15 +299,17 @@ export async function initiatePayment(req: Request, res: Response): Promise<void
       });
     } catch (error) {
       console.error("[Payment Initiation Error]:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unable to initiate payment with ioTec Pay";
       await prisma.paymentTransaction.update({
         where: { id: payment.id },
         data: {
           status: "Failed",
           statusCode: "initiation_failed",
-          statusMessage: "Unable to initiate payment with ioTec Pay",
+          statusMessage: errorMessage,
         },
       });
-      paymentError(res, "Unable to initiate payment", 502);
+      paymentError(res, errorMessage, 502);
     }
   } catch (error) {
     console.error("[Payment Request Error]:", error);
@@ -289,6 +319,11 @@ export async function initiatePayment(req: Request, res: Response): Promise<void
 
 export async function getPaymentStatus(req: Request, res: Response): Promise<void> {
   try {
+    if (!req.user) {
+      paymentError(res, "Authentication required", 401);
+      return;
+    }
+
     const payment = await prisma.paymentTransaction.findUnique({
       where: { id: req.params.id },
     });
@@ -337,9 +372,9 @@ export async function handlePaymentCallback(req: Request, res: Response): Promis
     const payment = await prisma.paymentTransaction.findFirst({
       where: {
         OR: [
-          providerTransactionId: providerTransactionId ?? undefined,
-          externalId: externalId ?? undefined,
-        ].filter((value): value is { providerTransactionId: string } | { externalId: string } => Boolean(value)),
+          ...(providerTransactionId ? [{ providerTransactionId }] : []),
+          ...(externalId ? [{ externalId }] : []),
+        ],
       },
     });
 
