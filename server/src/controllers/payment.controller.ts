@@ -5,6 +5,7 @@ import prisma from "../config/db";
 import {
   getCollectionStatus,
   initiateCollection,
+  normalizeWalletId,
   type CollectionResponse,
   type Currency,
   type TransactionChargesCategory,
@@ -219,7 +220,7 @@ export async function initiatePayment(req: Request, res: Response): Promise<void
       return;
     }
 
-    const walletId = process.env.IOTEC_PAY_WALLET_ID;
+    const walletId = normalizeWalletId(process.env.IOTEC_PAY_WALLET_ID);
     if (!walletId) {
       paymentError(res, "Payment wallet is not configured", 500);
       return;

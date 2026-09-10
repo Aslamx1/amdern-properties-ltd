@@ -160,6 +160,23 @@ function requiredEnv(name: string): string {
   return value;
 }
 
+export function normalizeWalletId(value: string | undefined): string {
+  const raw = (value ?? "").trim().replace(/^['"]|['"]$/g, "");
+  if (!raw) {
+    throw new Error("Missing IOTEC_PAY_WALLET_ID");
+  }
+
+  const urlMatch = raw.match(/https?:\/\/[^/]+\/p\/([^/?#]+)/i);
+  const uuidMatch = raw.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
+  const normalized = (urlMatch?.[1] ?? uuidMatch?.[0] ?? raw).trim();
+
+  if (!normalized) {
+    throw new Error("Missing IOTEC_PAY_WALLET_ID");
+  }
+
+  return normalized;
+}
+
 async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   const text = await response.text();
