@@ -14,7 +14,7 @@ import {
   Fingerprint,
 } from "lucide-react";
 import { Page } from "@/components/site/Page";
-import { supabase } from "@/integrations/supabase/client";
+import { login } from "@/lib/api-auth";
 import { signInWithGoogle, signInWithPasskey } from "@/lib/auth";
 
 export const Route = createFileRoute("/signin")({
@@ -52,16 +52,12 @@ function SignIn() {
     setBusy(true);
     setError(null);
     try {
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-      setBusy(false);
-      if (err) {
-        setError(err.message);
-        return;
-      }
+      await login(email, password);
       navigate({ to: "/dashboard" });
     } catch (e) {
+      setError(e instanceof Error ? e.message : "An unexpected error occurred. Please try again.");
+    } finally {
       setBusy(false);
-      setError("An unexpected error occurred. Please try again.");
     }
   }
 
