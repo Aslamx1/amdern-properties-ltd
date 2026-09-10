@@ -33,20 +33,17 @@ async function ensureDefaultAdminUser() {
   const fallbackEmail = "admin@amdernpropertiessmclimited.com";
   const password = "amdern@";
 
-  const existing = await prisma.user.findFirst({
-    where: {
-      OR: [{ email: primaryEmail }, { email: fallbackEmail }],
-    },
-  });
-
-  if (existing) {
-    return existing;
-  }
-
   const passwordHash = await bcrypt.hash(password, 12);
-
-  const created = await prisma.user.create({
-    data: {
+  const admin = await prisma.user.upsert({
+    where: { email: primaryEmail },
+    update: {
+      password: passwordHash,
+      role: Role.ADMIN,
+      isVerified: true,
+      privacyPolicyAgreed: true,
+      privacyAgreedAt: new Date(),
+    },
+    create: {
       name: "Amdern SMC Executive Admin",
       email: primaryEmail,
       password: passwordHash,
@@ -60,8 +57,8 @@ async function ensureDefaultAdminUser() {
     },
   });
 
-  console.log(`[Bootstrap] Created default admin user: ${created.email}`);
-  return created;
+  console.log(`[Bootstrap] Ensured admin user: ${admin.email}`);
+  return admin;
 }
 
 // CORS Configuration with HttpOnly cookie support

@@ -19,7 +19,7 @@ function getApiBaseUrl(): string {
   return window.location.origin;
 }
 
-const API_BASE_URL = getApiBaseUrl();
+export const API_BASE_URL = getApiBaseUrl();
 
 export interface SearchApiParams {
   q?: string;

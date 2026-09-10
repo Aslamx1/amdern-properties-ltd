@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { API_BASE_URL } from "@/lib/api-backend";
 
 type PaymentStatusRecord = {
   id: string;
@@ -56,7 +57,7 @@ function PaymentResultPage() {
           throw new Error("Please sign in again to check your payment status.");
         }
 
-        const response = await fetch(`/api/payments/status/${encodeURIComponent(paymentId)}`, {
+        const response = await fetch(`${API_BASE_URL}/api/payments/status/${encodeURIComponent(paymentId)}`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
           },

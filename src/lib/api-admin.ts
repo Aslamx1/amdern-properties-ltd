@@ -24,12 +24,32 @@ function getApiBaseUrl(): string {
 }
 
 const API_BASE_URL = getApiBaseUrl();
+const ADMIN_TOKEN_KEY = "amdern_admin_token";
+
+function getAdminToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage.getItem(ADMIN_TOKEN_KEY);
+}
+
+function setAdminToken(token: string): void {
+  if (typeof window !== "undefined") {
+    window.sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+  }
+}
+
+function clearAdminToken(): void {
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+  }
+}
 
 async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = getAdminToken();
   const res = await fetch(`${API_BASE_URL}${path}`, {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers ?? {}),
     },
     ...options,
@@ -83,10 +103,12 @@ export async function apiAdminLogin(
   email: string,
   password: string,
 ): Promise<{ token: string; message: string }> {
-  return apiRequest<{ token: string; message: string }>("/api/auth/login", {
+  const result = await apiRequest<{ token: string; message: string }>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
+  setAdminToken(result.token);
+  return result;
 }
 
 export async function apiAdminMe(): Promise<AdminProfile> {
@@ -94,7 +116,11 @@ export async function apiAdminMe(): Promise<AdminProfile> {
 }
 
 export async function apiAdminLogout(): Promise<{ message: string }> {
-  return apiRequest<{ message: string }>("/api/auth/logout", { method: "POST" });
+  try {
+    return await apiRequest<{ message: string }>("/api/auth/logout", { method: "POST" });
+  } finally {
+    clearAdminToken();
+  }
 }
 
 /* -------------------------------------------------------------------------- */

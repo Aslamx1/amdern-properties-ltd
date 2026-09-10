@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { SITE, getMailtoLink, getWhatsAppLink } from "@/lib/site";
+import { API_BASE_URL } from "@/lib/api-backend";
 
 type PaymentType = "subscription" | "promotion";
 type PaymentMethod = "mobile-money" | "bank-transfer" | "card";
@@ -166,7 +167,7 @@ function PaymentsPage() {
         listingRef: search.listingRef,
       };
 
-      const response = await fetch("/api/payments/initiate", {
+      const response = await fetch(`${API_BASE_URL}/api/payments/initiate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
