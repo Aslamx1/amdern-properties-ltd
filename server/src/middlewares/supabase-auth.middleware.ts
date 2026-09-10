@@ -1,5 +1,9 @@
 import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 import { Role } from "@prisma/client";
+import { AuthUserPayload } from "./auth.middleware";
+
+const JWT_SECRET = process.env.JWT_SECRET || "default_jwt_secret_please_change_in_production";
 
 type SupabaseUserResponse = {
   id?: unknown;
@@ -23,6 +27,26 @@ export async function authenticateSupabaseToken(
       return;
     }
 
+    const token = authorization.slice(7).trim();
+
+    // 1. Check if token is a local backend JWT
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as AuthUserPayload;
+      if (decoded && decoded.id) {
+        req.user = {
+          id: decoded.id,
+          email: decoded.email || "",
+          role: decoded.role || Role.SEEKER,
+          name: decoded.name || "User",
+        };
+        next();
+        return;
+      }
+    } catch {
+      // Not a local JWT, continue to Supabase verification
+    }
+
+    // 2. Verify with Supabase Auth
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
     const supabaseKey =
       process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;

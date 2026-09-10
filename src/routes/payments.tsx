@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -101,22 +101,28 @@ function PaymentsPage() {
   const navigate = useNavigate();
   const [method, setMethod] = useState<PaymentMethod>("mobile-money");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        setEmail(session.user.email);
+      }
+      if (session?.user?.phone) {
+        setPhone(session.user.phone);
+      }
+    });
+  }, []);
 
   const handleSubmitPayment = async () => {
     if (!search.item || !search.amount) return;
 
     const requestMethod = method === "card" ? "card" : "mobile-money";
 
-    if (requestMethod === "mobile-money" && !phone.trim()) {
-      setPaymentError("Enter the mobile money number to continue.");
-      return;
-    }
-
     setPaymentError(null);
-    setIsSubmitting(true);
 
     try {
       const {
@@ -128,12 +134,29 @@ function PaymentsPage() {
         throw new Error("Please sign in again to complete payment.");
       }
 
+      const payer =
+        requestMethod === "mobile-money"
+          ? phone.trim()
+          : (email.trim() || session.user?.email || "");
+
+      if (requestMethod === "mobile-money" && !payer) {
+        setPaymentError("Enter the mobile money number to continue.");
+        return;
+      }
+
+      if (requestMethod === "card" && (!payer || !payer.includes("@"))) {
+        setPaymentError("Please enter a valid billing email address for card payment.");
+        return;
+      }
+
+      setIsSubmitting(true);
+
       const payload = {
         type: search.type,
         item: search.item,
         amount: search.amount,
         method: requestMethod,
-        payer: requestMethod === "mobile-money" ? phone.trim() : session.user?.email || "customer",
+        payer,
         payerName:
           session.user?.user_metadata?.full_name ||
           session.user?.email?.split("@")[0] ||
@@ -152,11 +175,21 @@ function PaymentsPage() {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json().catch(() => ({}));
+      let data: any = {};
+      try {
+        data = await response.json();
+      } catch {
+        // Payload wasn't JSON
+      }
 
       if (!response.ok) {
-        throw new Error(data?.error || "Unable to initiate payment.");
+        const fallbackMsg =
+          response.status === 502 || response.status === 504
+            ? "Payment service is currently unavailable. Please make sure the backend server is running."
+            : `Unable to initiate payment (HTTP ${response.status}).`;
+        throw new Error(data?.error || fallbackMsg);
       }
+
 
       const payment = data?.payment;
       const redirectUrl = payment?.cardRedirectUrl || payment?.redirectUrl;
@@ -423,14 +456,34 @@ function PaymentsPage() {
               )}
 
               {method === "card" && (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Secure card checkout is handled through ioTec Pay for this subscription.
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleSubmitPayment();
+                  }}
+                  className="space-y-3"
+                >
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Billing Email Address
+                    </span>
+                    <input
+                      required
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="e.g. yourname@example.com"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
+                    />
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Secure card checkout is handled through ioTec Pay. You will be redirected to complete your card payment.
                   </p>
-                  <Button className="w-full" onClick={() => void handleSubmitPayment()} disabled={isSubmitting}>
-                    {isSubmitting ? "Processing payment..." : "Pay with Card"} <ArrowRight className="h-4 w-4" />
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? "Processing payment..." : "Pay with Card"}{" "}
+                    <ArrowRight className="h-4 w-4" />
                   </Button>
-                </div>
+                </form>
               )}
 
               {(paymentError || paymentId) && (

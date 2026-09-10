@@ -9,6 +9,28 @@ async function main() {
   // 1. Seed System Admin & Agent Users
   const passwordHash = await bcrypt.hash("AmdernAdmin2026!", 12);
 
+  const adminPasswordHash = await bcrypt.hash("amdern@", 12);
+
+  const mainAdmin = await prisma.user.upsert({
+    where: { email: "amdern@smc.com" },
+    update: {
+      password: adminPasswordHash,
+      role: Role.ADMIN,
+      isVerified: true,
+      name: "Amdern Administrator",
+    },
+    create: {
+      name: "Amdern Administrator",
+      email: "amdern@smc.com",
+      password: adminPasswordHash,
+      phone: "+256 700 000 000",
+      role: Role.ADMIN,
+      isVerified: true,
+      privacyPolicyAgreed: true,
+      privacyAgreedAt: new Date(),
+    },
+  });
+
   const admin = await prisma.user.upsert({
     where: { email: "admin@amdernpropertiessmclimited.com" },
     update: {},

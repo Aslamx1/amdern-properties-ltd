@@ -50,9 +50,14 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
         } else {
           message = text;
         }
+      } else if (res.status === 502 || res.status === 504) {
+        message = "Backend server is not running on port 5000. Please start the server.";
       }
     } catch {
-      message = "Request failed";
+      message =
+        res.status === 502 || res.status === 504
+          ? "Backend server is not running on port 5000. Please start the server."
+          : "Request failed";
     }
     throw new Error(message || "Request failed");
   }

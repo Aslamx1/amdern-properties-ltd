@@ -773,7 +773,7 @@ export async function updateAdminProperty(req: Request, res: Response): Promise<
 
       if (normalizedImages.length > 0) {
         await prisma.propertyImage.createMany({
-          data: normalizedImages.map((image) => ({
+          data: normalizedImages.map((image: any) => ({
             propertyId: id,
             imageUrl: image.imageUrl,
             webpUrl: image.webpUrl,
