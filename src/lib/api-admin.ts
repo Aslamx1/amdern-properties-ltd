@@ -6,6 +6,8 @@
  * configured VITE_API_URL is used when present.
  */
 
+import { supabase } from "@/integrations/supabase/client";
+
 function getApiBaseUrl(): string {
   const configured = import.meta.env["VITE_API_URL"] as string | undefined;
   if (configured && configured.trim()) {
@@ -103,21 +105,57 @@ export async function apiAdminLogin(
   email: string,
   password: string,
 ): Promise<{ token: string; message: string }> {
-  const result = await apiRequest<{ token: string; message: string }>("/api/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password,
   });
-  setAdminToken(result.token);
-  return result;
+  if (error) throw new Error(error.message);
+  if (!data.session || !data.user) {
+    throw new Error("Login did not return an active session. Please try again.");
+  }
+  setAdminToken(data.session.access_token);
+  return { token: data.session.access_token, message: "Login successful" };
 }
 
 export async function apiAdminMe(): Promise<AdminProfile> {
-  return apiRequest<AdminProfile>("/api/admin/me");
+  const { data, error } = await supabase.auth.getUser();
+  if (error) throw new Error(error.message);
+  if (!data.user) throw new Error("Authentication required");
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("full_name, account_type, phone")
+    .eq("id", data.user.id)
+    .maybeSingle();
+  if (profileError) throw new Error(profileError.message);
+
+  const metadata = data.user.user_metadata ?? {};
+  const role =
+    typeof metadata.role === "string"
+      ? metadata.role.toUpperCase()
+      : profile?.account_type?.toUpperCase() === "ADMIN"
+        ? "ADMIN"
+        : "SEEKER";
+
+  return {
+    admin: {
+      id: data.user.id,
+      name:
+        profile?.full_name ||
+        (typeof metadata.full_name === "string" ? metadata.full_name : data.user.email || ""),
+      email: data.user.email || "",
+      role,
+      isVerified: Boolean(data.user.email_confirmed_at),
+      createdAt: data.user.created_at,
+    },
+  };
 }
 
 export async function apiAdminLogout(): Promise<{ message: string }> {
   try {
-    return await apiRequest<{ message: string }>("/api/auth/logout", { method: "POST" });
+    const { error } = await supabase.auth.signOut();
+    if (error) throw new Error(error.message);
+    return { message: "Logged out successfully" };
   } finally {
     clearAdminToken();
   }

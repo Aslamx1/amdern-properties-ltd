@@ -1,9 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
-const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] || import.meta.env["SUPABASE_URL"];
+const supabaseUrl =
+  import.meta.env["VITE_SUPABASE_URL"] ||
+  import.meta.env["SUPABASE_URL"] ||
+  "https://wfctuujqszubwjpnldrs.supabase.co";
 const supabaseAnonKey =
-  import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || import.meta.env["SUPABASE_PUBLISHABLE_KEY"];
+  import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
+  import.meta.env["SUPABASE_PUBLISHABLE_KEY"] ||
+  "sb_publishable_S3DMhYtVUAR8KZmWtLNNpA_qqwZupAR";
 
 const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -14,8 +19,8 @@ if (!hasSupabaseConfig) {
 }
 
 export const supabase = createClient<Database>(
-  supabaseUrl || "https://example.supabase.co",
-  supabaseAnonKey || "public-anon-key",
+  supabaseUrl,
+  supabaseAnonKey,
   {
     auth: {
       persistSession: hasSupabaseConfig,

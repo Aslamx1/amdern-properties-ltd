@@ -1,29 +1,11 @@
 /**
  * Frontend auth API client.
  *
- * Calls the real Express/Prisma backend at /api/auth/* using HttpOnly JWT
- * cookies. In local development, these requests are routed through the Vite
- * proxy to avoid cross-origin fetch failures.
+ * Uses Supabase Auth so sign-in works from the Cloudflare-hosted frontend
+ * without depending on a separately hosted Express server.
  */
 
-function getApiBaseUrl(): string {
-  const configured = import.meta.env["VITE_API_URL"] as string | undefined;
-  if (configured && configured.trim()) {
-    return configured.replace(/\/$/, "");
-  }
-
-  if (typeof window === "undefined") {
-    return "";
-  }
-
-  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-    return "";
-  }
-
-  return window.location.origin;
-}
-
-const API_BASE_URL = getApiBaseUrl();
+import { supabase } from "@/integrations/supabase/client";
 
 export interface SignupPayload {
   name: string;
@@ -55,44 +37,80 @@ export interface AuthResponse {
   token: string;
 }
 
-async function apiAuth<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers ?? {}),
-    },
-    ...options,
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Request failed" }));
-    throw new Error(err.error || `HTTP ${res.status}`);
-  }
-
-  return res.json() as Promise<T>;
+function toAuthUser(user: {
+  id: string;
+  email?: string;
+  user_metadata?: Record<string, unknown>;
+  created_at: string;
+}): AuthUser {
+  const metadata = user.user_metadata ?? {};
+  return {
+    id: user.id,
+    name: typeof metadata.full_name === "string" ? metadata.full_name : user.email?.split("@")[0] || "",
+    email: user.email || "",
+    phone: typeof metadata.phone === "string" ? metadata.phone : null,
+    role: typeof metadata.role === "string" ? metadata.role : "SEEKER",
+    isVerified: Boolean(user.email),
+    avatarUrl: typeof metadata.avatar_url === "string" ? metadata.avatar_url : null,
+    createdAt: user.created_at,
+    privacyPolicyAgreed: true,
+    privacyAgreedAt: user.created_at,
+    marketingConsent: false,
+  };
 }
 
 export async function signup(payload: SignupPayload): Promise<AuthResponse> {
-  return apiAuth<AuthResponse>("/api/auth/signup", {
-    method: "POST",
-    body: JSON.stringify(payload),
+  const { data, error } = await supabase.auth.signUp({
+    email: payload.email,
+    password: payload.password,
+    options: {
+      data: {
+        full_name: payload.name,
+        phone: payload.phone,
+        account_type: payload.role || "seeker",
+        privacy_policy_agreed: payload.privacyPolicyAgreed,
+        marketing_consent: payload.marketingConsent,
+      },
+    },
   });
+  if (error) throw new Error(error.message);
+  if (!data.user || !data.session) {
+    throw new Error("Account created. Check your email to confirm your account before signing in.");
+  }
+  return {
+    message: "Account created successfully",
+    user: toAuthUser(data.user),
+    token: data.session.access_token,
+  };
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  return apiAuth<AuthResponse>("/api/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password,
   });
+  if (error) throw new Error(error.message);
+  if (!data.user || !data.session) {
+    throw new Error("Login did not return an active session. Please try again.");
+  }
+  return {
+    message: "Login successful",
+    user: toAuthUser(data.user),
+    token: data.session.access_token,
+  };
 }
 
 export async function logout(): Promise<{ message: string }> {
-  return apiAuth<{ message: string }>("/api/auth/logout", { method: "POST" });
+  const { error } = await supabase.auth.signOut();
+  if (error) throw new Error(error.message);
+  return { message: "Logged out successfully" };
 }
 
 export async function getMe(): Promise<{ user: AuthUser }> {
-  return apiAuth<{ user: AuthUser }>("/api/auth/me");
+  const { data, error } = await supabase.auth.getUser();
+  if (error) throw new Error(error.message);
+  if (!data.user) throw new Error("Authentication required");
+  return { user: toAuthUser(data.user) };
 }
 
 export interface ConsentStatus {
