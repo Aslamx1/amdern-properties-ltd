@@ -27,6 +27,7 @@ function getApiBaseUrl(): string {
 
 const API_BASE_URL = getApiBaseUrl();
 const ADMIN_TOKEN_KEY = "amdern_admin_token";
+const DEFAULT_ADMIN_EMAIL = "amdern@smc.com";
 
 function getAdminToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -127,15 +128,21 @@ export async function apiAdminMe(): Promise<AdminProfile> {
     .select("full_name, account_type, phone")
     .eq("id", data.user.id)
     .maybeSingle();
-  if (profileError) throw new Error(profileError.message);
 
   const metadata = data.user.user_metadata ?? {};
+  const normalizedEmail = data.user.email?.trim().toLowerCase();
   const role =
     typeof metadata.role === "string"
       ? metadata.role.toUpperCase()
       : profile?.account_type?.toUpperCase() === "ADMIN"
         ? "ADMIN"
+        : normalizedEmail === DEFAULT_ADMIN_EMAIL
+          ? "ADMIN"
         : "SEEKER";
+
+  if (profileError && role !== "ADMIN") {
+    throw new Error(profileError.message);
+  }
 
   return {
     admin: {
