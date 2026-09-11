@@ -7,5 +7,15 @@
   "assets": {
     "directory": "dist/client",
     "binding": "ASSETS"
-  }
+  },
+  "routes": [
+    {
+      "pattern": "amdernpropertiessmclimited.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.amdernpropertiessmclimited.com",
+      "custom_domain": true
+    }
+  ]
 }
