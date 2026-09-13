@@ -55,6 +55,19 @@ export interface AuthResponse {
   token: string;
 }
 
+const AUTH_TOKEN_KEY = "amdern_auth_token";
+
+function persistAuthResponse(response: AuthResponse): AuthResponse {
+  if (typeof window !== "undefined" && response.token) {
+    localStorage.setItem(AUTH_TOKEN_KEY, response.token);
+  }
+  return response;
+}
+
+export function getAuthToken(): string | null {
+  return typeof window === "undefined" ? null : localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
 async function apiAuth<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     credentials: "include",
@@ -74,21 +87,25 @@ async function apiAuth<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export async function signup(payload: SignupPayload): Promise<AuthResponse> {
-  return apiAuth<AuthResponse>("/api/auth/signup", {
+  return persistAuthResponse(await apiAuth<AuthResponse>("/api/auth/signup", {
     method: "POST",
     body: JSON.stringify(payload),
-  });
+  }));
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  return apiAuth<AuthResponse>("/api/auth/login", {
+  return persistAuthResponse(await apiAuth<AuthResponse>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
-  });
+  }));
 }
 
 export async function logout(): Promise<{ message: string }> {
-  return apiAuth<{ message: string }>("/api/auth/logout", { method: "POST" });
+  const response = await apiAuth<{ message: string }>("/api/auth/logout", { method: "POST" });
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+  }
+  return response;
 }
 
 export async function getMe(): Promise<{ user: AuthUser }> {

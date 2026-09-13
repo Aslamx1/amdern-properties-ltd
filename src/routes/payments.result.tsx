@@ -5,8 +5,8 @@ import { Page, PageHero } from "@/components/site/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import { API_BASE_URL } from "@/lib/api-backend";
+import { getAuthToken } from "@/lib/api-auth";
 
 type PaymentStatusRecord = {
   id: string;
@@ -48,18 +48,14 @@ function PaymentResultPage() {
           throw new Error("No payment reference was found.");
         }
 
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-
-        if (sessionError || !session?.access_token) {
+        const token = getAuthToken();
+        if (!token) {
           throw new Error("Please sign in again to check your payment status.");
         }
 
         const response = await fetch(`${API_BASE_URL}/api/payments/status/${encodeURIComponent(paymentId)}`, {
           headers: {
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 

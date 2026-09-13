@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { SITE, getMailtoLink, getWhatsAppLink } from "@/lib/site";
 import { API_BASE_URL } from "@/lib/api-backend";
+import { getAuthToken, getMe } from "@/lib/api-auth";
 
 type PaymentType = "subscription" | "promotion";
 type PaymentMethod = "mobile-money" | "bank-transfer" | "card";
@@ -31,11 +32,9 @@ type PaymentSearch = {
 
 export const Route = createFileRoute("/payments")({
   beforeLoad: async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    try {
+      await getMe();
+    } catch {
       throw redirect({ to: "/signin" });
     }
   },
@@ -126,19 +125,16 @@ function PaymentsPage() {
     setPaymentError(null);
 
     try {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-
-      if (sessionError || !session?.access_token) {
+      const token = getAuthToken();
+      if (!token) {
         throw new Error("Please sign in again to complete payment.");
       }
+      const { user } = await getMe();
 
       const payer =
         requestMethod === "mobile-money"
           ? phone.trim()
-          : (email.trim() || session.user?.email || "");
+          : (email.trim() || user.email || "");
 
       if (requestMethod === "mobile-money" && !payer) {
         setPaymentError("Enter the mobile money number to continue.");
@@ -159,8 +155,8 @@ function PaymentsPage() {
         method: requestMethod,
         payer,
         payerName:
-          session.user?.user_metadata?.full_name ||
-          session.user?.email?.split("@")[0] ||
+          user.name ||
+          user.email?.split("@")[0] ||
           "Customer",
         period: search.period,
         listingId: search.listingId,
@@ -171,7 +167,7 @@ function PaymentsPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
