@@ -79,6 +79,9 @@ async function apiAuth<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!res.ok) {
+    if (res.status === 404) {
+      throw new TypeError("Authentication API is unavailable");
+    }
     const err = await res.json().catch(() => ({ error: "Request failed" }));
     throw new Error(err.error || `HTTP ${res.status}`);
   }
@@ -87,17 +90,75 @@ async function apiAuth<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export async function signup(payload: SignupPayload): Promise<AuthResponse> {
-  return persistAuthResponse(await apiAuth<AuthResponse>("/api/auth/signup", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  }));
+  try {
+    return persistAuthResponse(await apiAuth<AuthResponse>("/api/auth/signup", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }));
+  } catch (error) {
+    if (!(error instanceof TypeError)) throw error;
+    const { data, error: supabaseError } = await supabase.auth.signUp({
+      email: payload.email,
+      password: payload.password,
+      options: {
+        data: { full_name: payload.name, phone: payload.phone, account_type: payload.role },
+      },
+    });
+    if (supabaseError) throw new Error(supabaseError.message);
+    if (!data.user || !data.session) {
+      throw new Error("Check your email to confirm your account before signing in.");
+    }
+    return {
+      message: "Account created successfully",
+      user: {
+        id: data.user.id,
+        name: payload.name,
+        email: data.user.email || payload.email,
+        phone: payload.phone || null,
+        role: payload.role || "SEEKER",
+        isVerified: Boolean(data.user.email_confirmed_at),
+        avatarUrl: null,
+        createdAt: data.user.created_at,
+        privacyPolicyAgreed: payload.privacyPolicyAgreed,
+        privacyAgreedAt: new Date().toISOString(),
+        marketingConsent: payload.marketingConsent,
+      },
+      token: data.session.access_token,
+    };
+  }
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  return persistAuthResponse(await apiAuth<AuthResponse>("/api/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
-  }));
+  try {
+    return persistAuthResponse(await apiAuth<AuthResponse>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }));
+  } catch (error) {
+    if (!(error instanceof TypeError)) throw error;
+    const { data, error: supabaseError } = await supabase.auth.signInWithPassword({ email, password });
+    if (supabaseError || !data.user || !data.session) {
+      throw new Error(supabaseError?.message || "Unable to sign in.");
+    }
+    const metadata = data.user.user_metadata || {};
+    return persistAuthResponse({
+      message: "Login successful",
+      user: {
+        id: data.user.id,
+        name: typeof metadata.full_name === "string" ? metadata.full_name : email.split("@")[0],
+        email: data.user.email || email,
+        phone: data.user.phone || null,
+        role: typeof metadata.account_type === "string" ? metadata.account_type : "SEEKER",
+        isVerified: Boolean(data.user.email_confirmed_at),
+        avatarUrl: typeof metadata.avatar_url === "string" ? metadata.avatar_url : null,
+        createdAt: data.user.created_at,
+        privacyPolicyAgreed: true,
+        privacyAgreedAt: data.user.created_at,
+        marketingConsent: false,
+      },
+      token: data.session.access_token,
+    });
+  }
 }
 
 export async function logout(): Promise<{ message: string }> {
@@ -109,7 +170,29 @@ export async function logout(): Promise<{ message: string }> {
 }
 
 export async function getMe(): Promise<{ user: AuthUser }> {
-  return apiAuth<{ user: AuthUser }>("/api/auth/me");
+  try {
+    return await apiAuth<{ user: AuthUser }>("/api/auth/me");
+  } catch (error) {
+    if (!(error instanceof TypeError)) throw error;
+    const { data, error: supabaseError } = await supabase.auth.getUser();
+    if (supabaseError || !data.user) throw new Error("Please sign in again.");
+    const metadata = data.user.user_metadata || {};
+    return {
+      user: {
+        id: data.user.id,
+        name: typeof metadata.full_name === "string" ? metadata.full_name : data.user.email?.split("@")[0] || "User",
+        email: data.user.email || "",
+        phone: data.user.phone || null,
+        role: typeof metadata.account_type === "string" ? metadata.account_type : "SEEKER",
+        isVerified: Boolean(data.user.email_confirmed_at),
+        avatarUrl: typeof metadata.avatar_url === "string" ? metadata.avatar_url : null,
+        createdAt: data.user.created_at,
+        privacyPolicyAgreed: true,
+        privacyAgreedAt: data.user.created_at,
+        marketingConsent: false,
+      },
+    };
+  }
 }
 
 export interface ConsentStatus {
@@ -156,3 +239,4 @@ export async function deletePersonalData(
     method: "DELETE",
   });
 }
+import { supabase } from "@/integrations/supabase/client";
