@@ -12,18 +12,33 @@ const IS_PROD = process.env.NODE_ENV === "production";
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 const isLocalHostOrigin = (origin: string) => /^(http:\/\/localhost:\d+|http:\/\/127\.0\.0\.1:\d+)$/.test(origin);
 
-// Helper: send JWT in HttpOnly cookie
-function setAuthCookie(res: Response, token: string) {
-  const origin = process.env.CLIENT_URL || "http://localhost:3000";
-  const secure = IS_PROD || !!origin.startsWith("https://");
+function isSecureCookieRequest(req: Request | undefined): boolean {
+  if (!req) return IS_PROD;
 
-  res.cookie("token", token, {
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const proto = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto;
+  if (proto) {
+    return proto.toLowerCase().startsWith("https");
+  }
+
+  const origin = process.env.CLIENT_URL || CLIENT_URL;
+  return IS_PROD || !!origin.startsWith("https://") || req.secure;
+}
+
+function getCookiePolicy(req: Request | undefined) {
+  const secure = isSecureCookieRequest(req);
+  return {
     httpOnly: true,
     secure,
     sameSite: secure ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 7 * 24 * 60 * 60 * 1000,
     path: "/",
-  });
+  } as const;
+}
+
+// Helper: send JWT in HttpOnly cookie
+function setAuthCookie(req: Request, res: Response, token: string) {
+  res.cookie("token", token, getCookiePolicy(req));
 }
 
 function generateToken(payload: { id: string; email: string; role: Role; name: string }) {
@@ -31,12 +46,16 @@ function generateToken(payload: { id: string; email: string; role: Role; name: s
 }
 
 // Zod Schemas
+const roleSchema = z
+  .enum(["SEEKER", "OWNER", "AGENT", "DEVELOPER", "ADMIN", "seeker", "owner", "agent", "developer", "admin"])
+  .transform((value) => value.toUpperCase() as Role);
+
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   phone: z.string().optional(),
-  role: z.nativeEnum(Role).default(Role.SEEKER),
+  role: roleSchema.default(Role.SEEKER),
   // —— Uganda Data Protection and Privacy Act, 2019 ——
   // Article 9 requires explicit, affirmative consent before personal data
   // can be processed. The checkbox must be checked at registration.
@@ -119,7 +138,7 @@ export async function signup(req: Request, res: Response): Promise<void> {
       name: user.name,
     });
 
-    setAuthCookie(res, token);
+    setAuthCookie(req, res, token);
 
     res.status(201).json({
       message: "Account created successfully",
@@ -164,7 +183,7 @@ export async function login(req: Request, res: Response): Promise<void> {
       name: user.name,
     });
 
-    setAuthCookie(res, token);
+    setAuthCookie(req, res, token);
 
     res.json({
       message: "Login successful",
@@ -221,14 +240,14 @@ export async function getMe(req: Request, res: Response): Promise<void> {
   }
 }
 
-export function logout(_req: Request, res: Response): void {
-  const secure = IS_PROD || !!(process.env.CLIENT_URL || "").startsWith("https://");
+export function logout(req: Request, res: Response): void {
+  const cookiePolicy = getCookiePolicy(req);
 
   res.clearCookie("token", {
-    httpOnly: true,
-    secure,
-    sameSite: secure ? "none" : "lax",
-    path: "/",
+    httpOnly: cookiePolicy.httpOnly,
+    secure: cookiePolicy.secure,
+    sameSite: cookiePolicy.sameSite,
+    path: cookiePolicy.path,
   });
   res.json({ message: "Logged out successfully" });
 }
@@ -387,6 +406,6 @@ export function handleGoogleOAuthCallback(req: Request, res: Response): void {
     name: user.name,
   });
 
-  setAuthCookie(res, token);
+  setAuthCookie(req, res, token);
   res.redirect(`${CLIENT_URL}/dashboard?login=google_success`);
 }

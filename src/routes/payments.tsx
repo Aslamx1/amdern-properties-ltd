@@ -13,7 +13,7 @@ import { Page, PageHero } from "@/components/site/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { getMe, getAuthHeaders, getStoredToken } from "@/lib/api-auth";
 import { SITE, getMailtoLink, getWhatsAppLink } from "@/lib/site";
 import { API_BASE_URL } from "@/lib/api-backend";
 
@@ -31,11 +31,9 @@ type PaymentSearch = {
 
 export const Route = createFileRoute("/payments")({
   beforeLoad: async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    try {
+      await getMe();
+    } catch {
       throw redirect({ to: "/signin" });
     }
   },
@@ -108,14 +106,15 @@ function PaymentsPage() {
   const [paymentId, setPaymentId] = useState<string | null>(null);
 
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.email) {
-        setEmail(session.user.email);
-      }
-      if (session?.user?.phone) {
-        setPhone(session.user.phone);
-      }
-    });
+    void getMe()
+      .then(({ user }) => {
+        setEmail(user.email || "");
+        setPhone(user.phone || "");
+      })
+      .catch(() => {
+        setEmail("");
+        setPhone("");
+      });
   }, []);
 
   const handleSubmitPayment = async () => {
@@ -126,19 +125,13 @@ function PaymentsPage() {
     setPaymentError(null);
 
     try {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-
-      if (sessionError || !session?.access_token) {
-        throw new Error("Please sign in again to complete payment.");
-      }
+      const me = await getMe();
+      const user = me.user;
 
       const payer =
         requestMethod === "mobile-money"
           ? phone.trim()
-          : (email.trim() || session.user?.email || "");
+          : (email.trim() || user.email || "");
 
       if (requestMethod === "mobile-money" && !payer) {
         setPaymentError("Enter the mobile money number to continue.");
@@ -158,10 +151,7 @@ function PaymentsPage() {
         amount: search.amount,
         method: requestMethod,
         payer,
-        payerName:
-          session.user?.user_metadata?.full_name ||
-          session.user?.email?.split("@")[0] ||
-          "Customer",
+        payerName: user.name || user.email?.split("@")[0] || "Customer",
         period: search.period,
         listingId: search.listingId,
         listingRef: search.listingRef,
@@ -169,10 +159,10 @@ function PaymentsPage() {
 
       const response = await fetch(`${API_BASE_URL}/api/payments/initiate`, {
         method: "POST",
-        headers: {
+        credentials: "include",
+        headers: getAuthHeaders({
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        }),
         body: JSON.stringify(payload),
       });
 
@@ -191,7 +181,6 @@ function PaymentsPage() {
         throw new Error(data?.error || fallbackMsg);
       }
 
-
       const payment = data?.payment;
       const redirectUrl = payment?.cardRedirectUrl || payment?.redirectUrl;
 
@@ -200,7 +189,7 @@ function PaymentsPage() {
         return;
       }
 
-      const createdId = payment?.id || null;
+      const createdId = payment?.externalId || payment?.id || null;
       setPaymentId(createdId);
 
       if (createdId) {

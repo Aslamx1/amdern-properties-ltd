@@ -24,6 +24,30 @@ function getApiBaseUrl(): string {
 }
 
 const API_BASE_URL = getApiBaseUrl();
+const AUTH_TOKEN_KEY = "amdern_auth_token";
+
+export function getStoredToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+export function getAuthHeaders(existingHeaders: HeadersInit = {}): Headers {
+  const headers = new Headers(existingHeaders);
+  const token = getStoredToken();
+  if (!headers.has("Authorization") && token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  return headers;
+}
+
+function persistToken(token?: string) {
+  if (typeof window === "undefined") return;
+  if (token) {
+    window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+    return;
+  }
+  window.localStorage.removeItem(AUTH_TOKEN_KEY);
+}
 
 export interface SignupPayload {
   name: string;
@@ -56,16 +80,34 @@ export interface AuthResponse {
 }
 
 async function apiAuth<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers ?? {}),
-    },
-    ...options,
-  });
+  const token = getStoredToken();
+  const headers = new Headers(options.headers || {});
+
+  if (!headers.has("Authorization") && token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      credentials: "include",
+      headers,
+      ...options,
+    });
+  } catch (networkErr) {
+    throw new Error(
+      "Unable to connect to the backend server. Please verify the server is running on port 5000."
+    );
+  }
 
   if (!res.ok) {
+    if (res.status === 502 || res.status === 504) {
+      throw new Error("Backend server is not responding. Please make sure port 5000 is active.");
+    }
     const err = await res.json().catch(() => ({ error: "Request failed" }));
     throw new Error(err.error || `HTTP ${res.status}`);
   }
@@ -74,21 +116,27 @@ async function apiAuth<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export async function signup(payload: SignupPayload): Promise<AuthResponse> {
-  return apiAuth<AuthResponse>("/api/auth/signup", {
+  const response = await apiAuth<AuthResponse>("/api/auth/signup", {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  persistToken(response.token);
+  return response;
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  return apiAuth<AuthResponse>("/api/auth/login", {
+  const response = await apiAuth<AuthResponse>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
+  persistToken(response.token);
+  return response;
 }
 
 export async function logout(): Promise<{ message: string }> {
-  return apiAuth<{ message: string }>("/api/auth/logout", { method: "POST" });
+  const response = await apiAuth<{ message: string }>("/api/auth/logout", { method: "POST" });
+  persistToken();
+  return response;
 }
 
 export async function getMe(): Promise<{ user: AuthUser }> {

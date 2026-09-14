@@ -1,27 +1,21 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { redirect } from "@tanstack/react-router";
+import { getMe } from "@/lib/api-auth";
 import type { AccountType } from "@/lib/auth";
 
 export async function requireAuth() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  try {
+    const response = await getMe();
+    return {
+      id: response.user.id,
+      email: response.user.email,
+      full_name: response.user.name,
+      phone: response.user.phone,
+      account_type: (response.user.role || "seeker") as AccountType,
+      created_at: response.user.createdAt,
+    };
+  } catch {
     throw redirect({ to: "/signin" });
   }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  return {
-    id: user.id,
-    email: user.email,
-    full_name: profile?.full_name || user.user_metadata?.full_name || null,
-    phone: profile?.phone || user.user_metadata?.phone || null,
-    account_type: (profile?.account_type || user.user_metadata?.account_type || "seeker") as AccountType,
-    created_at: user.created_at,
-  };
 }
 
 export async function requireRole(allowedRoles: AccountType[]) {
@@ -56,9 +50,11 @@ export function createProtectedRoute(options: { roles?: AccountType[]; redirectT
 export function createPublicRoute() {
   return {
     beforeLoad: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+      try {
+        await getMe();
         throw redirect({ to: "/dashboard" });
+      } catch {
+        // Not authenticated, allow access
       }
     }
   };

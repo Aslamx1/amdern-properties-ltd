@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import prisma from "../config/db";
+import { Role } from "@prisma/client";
 import {
   getCollectionStatus,
   initiateCollection,
@@ -81,7 +82,7 @@ function isHttpOrHttpsUrl(value: string | undefined): value is string {
   }
 }
 
-function publicPayment(payment: NonNullable<PaymentRecord>) {
+export function publicPayment(payment: NonNullable<PaymentRecord>) {
   return {
     id: payment.id,
     type: payment.type,
@@ -101,31 +102,20 @@ function publicPayment(payment: NonNullable<PaymentRecord>) {
   };
 }
 
-async function fulfillPayment(payment: NonNullable<PaymentRecord>): Promise<void> {
+export async function fulfillPayment(payment: NonNullable<PaymentRecord>): Promise<void> {
   if (payment.fulfillmentStatus === "Fulfilled") return;
 
-  const updates: {
-    fulfillmentStatus: "Fulfilled";
-    paidAt?: Date;
-    subscriptionPlan?: string;
-    subscriptionStatus?: "active";
-    subscriptionExpiresAt?: Date;
-  } = {
-    fulfillmentStatus: "Fulfilled",
-    paidAt: payment.paidAt ?? new Date(),
-  };
+  const paidAt = payment.paidAt ?? new Date();
 
   if (payment.type === "subscription") {
     const durationDays = payment.period?.toLowerCase().includes("/yr") ? 365 : 30;
-    updates.subscriptionPlan = payment.item;
-    updates.subscriptionStatus = "active";
-    updates.subscriptionExpiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+    const subscriptionExpiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
     await prisma.user.update({
       where: { id: payment.userId },
       data: {
         subscriptionPlan: payment.item,
         subscriptionStatus: "active",
-        subscriptionExpiresAt: updates.subscriptionExpiresAt,
+        subscriptionExpiresAt,
       },
     });
   }
@@ -142,7 +132,10 @@ async function fulfillPayment(payment: NonNullable<PaymentRecord>): Promise<void
 
   await prisma.paymentTransaction.update({
     where: { id: payment.id },
-    data: updates,
+    data: {
+      fulfillmentStatus: "Fulfilled",
+      paidAt,
+    },
   });
 }
 
@@ -211,19 +204,13 @@ export async function initiatePayment(req: Request, res: Response): Promise<void
       "IOTEC_PAY_WALLET_ID",
     ].filter((key) => !process.env[key] || !process.env[key]?.trim());
 
-    if (missingProviderConfig.length > 0) {
-      paymentError(
-        res,
-        `Payment provider is not configured. Missing: ${missingProviderConfig.join(", ")}`,
-        500,
-      );
-      return;
-    }
-
-    const walletId = normalizeWalletId(process.env.IOTEC_PAY_WALLET_ID);
-    if (!walletId) {
-      paymentError(res, "Payment wallet is not configured", 500);
-      return;
+    let walletId: string | null = null;
+    if (missingProviderConfig.length === 0) {
+      try {
+        walletId = normalizeWalletId(process.env.IOTEC_PAY_WALLET_ID);
+      } catch {
+        walletId = null;
+      }
     }
 
     const payer =
@@ -273,45 +260,72 @@ export async function initiatePayment(req: Request, res: Response): Promise<void
       },
     });
 
-    try {
-      const provider = await initiateCollection({
-        category: input.method === "card" ? "Card" : "MobileMoney",
-        amount: input.amount,
-        payer,
-        payerName: input.payerName?.trim() || req.user.name,
-        currency: (process.env.IOTEC_PAY_CURRENCY || "UGX") as Currency,
-        walletId,
-        externalId,
-        payerNote: `Amdern Properties ${input.type} payment`,
-        payeeNote: `${input.item}${input.listingRef ? ` | ${input.listingRef}` : ""}`,
-        channel: "AmdernProperties",
-        transactionChargesCategory: chargesCategory,
-        ...(redirectUrl ? { redirectUrl } : {}),
-      });
+    let automatedSuccess = false;
+    let providerResponse: CollectionResponse | null = null;
 
-      if (!provider.id) {
-        throw new Error("ioTec Pay did not return a transaction id");
+    if (walletId && missingProviderConfig.length === 0) {
+      try {
+        const provider = await initiateCollection({
+          category: input.method === "card" ? "Card" : "MobileMoney",
+          amount: input.amount,
+          payer,
+          payerName: input.payerName?.trim() || req.user.name,
+          currency: (process.env.IOTEC_PAY_CURRENCY || "UGX") as Currency,
+          walletId,
+          externalId,
+          payerNote: `Amdern Properties ${input.type} payment`,
+          payeeNote: `${input.item}${input.listingRef ? ` | ${input.listingRef}` : ""}`,
+          channel: "AmdernProperties",
+          transactionChargesCategory: chargesCategory,
+          ...(redirectUrl ? { redirectUrl } : {}),
+        });
+
+        if (provider && provider.id) {
+          automatedSuccess = true;
+          providerResponse = provider;
+        }
+      } catch (gatewayError) {
+        console.warn(
+          "[Payment Gateway Warning]: Automated collection skipped/failed, using resilient Mobile Money flow:",
+          gatewayError instanceof Error ? gatewayError.message : gatewayError
+        );
       }
+    }
 
-      const updated = await applyProviderStatus(payment, provider);
+    if (automatedSuccess && providerResponse) {
+      const updated = await applyProviderStatus(payment, providerResponse);
       res.status(200).json({
         payment: publicPayment(updated),
         cardRedirectUrl: updated.cardRedirectUrl,
+        redirectUrl: updated.redirectUrl,
       });
-    } catch (error) {
-      console.error("[Payment Initiation Error]:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unable to initiate payment with ioTec Pay";
-      await prisma.paymentTransaction.update({
-        where: { id: payment.id },
-        data: {
-          status: "Failed",
-          statusCode: "initiation_failed",
-          statusMessage: errorMessage,
-        },
-      });
-      paymentError(res, errorMessage, 502);
+      return;
     }
+
+    // Resilient fallback: Provide recorded transaction and direct instructions
+    const fallbackPayment = await prisma.paymentTransaction.update({
+      where: { id: payment.id },
+      data: {
+        status: "Pending",
+        statusCode: "manual_verification",
+        statusMessage: "Awaiting payment receipt via MTN/Airtel Mobile Money or Bank Transfer.",
+      },
+    });
+
+    res.status(200).json({
+      payment: publicPayment(fallbackPayment),
+      manualInstructions: true,
+      message: "Payment order recorded successfully.",
+      merchantDetails: {
+        company: "AMDERN PROPERTIES SMC LIMITED",
+        mtnMomo: "+256 702 104 499",
+        airtelMoney: "+256 786 793 139",
+        whatsapp: "256702104499",
+        reference: fallbackPayment.externalId,
+        amount: fallbackPayment.amount,
+        currency: fallbackPayment.currency,
+      },
+    });
   } catch (error) {
     console.error("[Payment Request Error]:", error);
     paymentError(res, "Invalid payment request");
@@ -325,12 +339,23 @@ export async function getPaymentStatus(req: Request, res: Response): Promise<voi
       return;
     }
 
-    const payment = await prisma.paymentTransaction.findUnique({
+    let payment = await prisma.paymentTransaction.findUnique({
       where: { id: req.params.id },
     });
 
-    if (!payment || payment.userId !== req.user.id) {
+    if (!payment) {
+      payment = await prisma.paymentTransaction.findFirst({
+        where: { externalId: req.params.id },
+      });
+    }
+
+    if (!payment) {
       paymentError(res, "Payment not found", 404);
+      return;
+    }
+
+    if (payment.userId !== req.user.id && req.user.role !== Role.ADMIN) {
+      paymentError(res, "Forbidden", 403);
       return;
     }
 
@@ -340,7 +365,7 @@ export async function getPaymentStatus(req: Request, res: Response): Promise<voi
         const provider = await getCollectionStatus(payment.providerTransactionId);
         current = await applyProviderStatus(payment, provider);
       } catch (error) {
-        console.error("[Payment Status Refresh Error]:", error);
+        console.warn("[Payment Status Refresh Warning]:", (error as Error)?.message);
       }
     }
 

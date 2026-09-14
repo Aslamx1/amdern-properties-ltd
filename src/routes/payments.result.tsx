@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { AlertCircle, CheckCircle2, LoaderCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle, CheckCircle2, LoaderCircle, ArrowLeft, Copy, Check, MessageCircle, PhoneCall } from "lucide-react";
 import { Page, PageHero } from "@/components/site/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { getMe, getAuthHeaders } from "@/lib/api-auth";
 import { API_BASE_URL } from "@/lib/api-backend";
+import { SITE, getWhatsAppLink } from "@/lib/site";
 
 type PaymentStatusRecord = {
   id: string;
@@ -35,6 +36,7 @@ function PaymentResultPage() {
   const [payment, setPayment] = useState<PaymentStatusRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,19 +50,17 @@ function PaymentResultPage() {
           throw new Error("No payment reference was found.");
         }
 
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-
-        if (sessionError || !session?.access_token) {
-          throw new Error("Please sign in again to check your payment status.");
+        try {
+          await getMe();
+        } catch {
+          // Proceed with stored token
         }
 
         const response = await fetch(`${API_BASE_URL}/api/payments/status/${encodeURIComponent(paymentId)}`, {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
+          credentials: "include",
+          headers: getAuthHeaders({
+            Accept: "application/json",
+          }),
         });
 
         const payload = await response.json().catch(() => ({}));
@@ -180,16 +180,78 @@ function PaymentResultPage() {
               </div>
 
               {payment.externalId && (
-                <p className="text-xs text-muted-foreground">
-                  External reference: <strong>{payment.externalId}</strong>
-                </p>
+                <div className="flex items-center justify-between rounded-lg bg-secondary/80 p-3 text-xs">
+                  <span>
+                    Transaction Reference: <strong className="font-mono text-sm">{payment.externalId}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (payment.externalId) {
+                        void navigator.clipboard.writeText(payment.externalId);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 rounded bg-background px-2.5 py-1 text-xs font-semibold shadow-sm hover:bg-secondary"
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied ? "Copied" : "Copy Reference"}
+                  </button>
+                </div>
+              )}
+
+              {isPending && (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 space-y-4">
+                  <div className="flex items-center gap-2 font-bold text-foreground-strong">
+                    <PhoneCall className="h-5 w-5 text-primary" />
+                    <h4>Direct Mobile Money Payment Details</h4>
+                  </div>
+                  <div className="grid gap-2 text-sm text-foreground-muted sm:grid-cols-2">
+                    <div className="rounded-lg bg-background p-3 border border-border">
+                      <p className="font-bold text-foreground-strong">MTN Mobile Money</p>
+                      <p className="font-mono text-base font-bold text-primary mt-1">+256 702 104 499</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Alt: +256 786 793 139</p>
+                    </div>
+                    <div className="rounded-lg bg-background p-3 border border-border">
+                      <p className="font-bold text-foreground-strong">Airtel Money</p>
+                      <p className="font-mono text-base font-bold text-primary mt-1">+256 702 104 499</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Name: AMDERN PROPERTIES SMC LTD</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Please use reference <strong>{payment.externalId || payment.id}</strong> in your payment reason. After sending, click below to notify our team for instant confirmation.
+                  </p>
+                  <Button asChild className="w-full bg-[#25D366] hover:bg-[#1EBE5D] text-white">
+                    <a
+                      href={getWhatsAppLink(
+                        SITE.whatsapp,
+                        `Hello AMDERN PROPERTIES SMC LTD,\nI have submitted payment for: ${payment.item || "Subscription"}\nAmount: ${payment.currency || "UGX"} ${(payment.amount || 0).toLocaleString("en-US")}\nReference: ${payment.externalId || payment.id}\n\nPlease confirm and activate my account.`
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" /> Confirm via WhatsApp with AMDERN Team
+                    </a>
+                  </Button>
+                </div>
               )}
 
               <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                 <Link to="/dashboard/subscription" className="btn-base btn-primary flex-1 justify-center">
                   <ArrowLeft className="h-4 w-4" /> Go to subscriptions
                 </Link>
-                <Button asChild className="flex-1" variant="outline">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setLoading(true);
+                    window.location.reload();
+                  }}
+                >
+                  Refresh Status
+                </Button>
+                <Button asChild className="flex-1" variant="ghost">
                   <a href="/dashboard">Open dashboard</a>
                 </Button>
               </div>

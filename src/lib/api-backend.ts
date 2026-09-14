@@ -1,6 +1,4 @@
-/**
- * Typed API client connecting the Amdern Properties frontend to the backend Node.js API service
- */
+import { getAuthHeaders } from "./api-auth";
 
 function getApiBaseUrl(): string {
   const configured = import.meta.env["VITE_API_URL"] as string | undefined;
@@ -45,27 +43,52 @@ export async function apiSearchProperties(params: SearchApiParams) {
     }
   });
 
-  const res = await fetch(`${API_BASE_URL}/api/properties?${query.toString()}`, {
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error(`Search failed: ${res.statusText}`);
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/properties?${query.toString()}`, {
+      credentials: "include",
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error(`Search failed: ${res.statusText}`);
+    return res.json();
+  } catch (err) {
+    if (err instanceof TypeError && err.message.includes("fetch")) {
+      throw new Error("Unable to connect to property search service. Please ensure the backend is running.");
+    }
+    throw err;
+  }
 }
 
 export async function apiGetProperty(slugOrId: string) {
-  const res = await fetch(`${API_BASE_URL}/api/properties/${encodeURIComponent(slugOrId)}`, {
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error(`Get property failed: ${res.statusText}`);
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/properties/${encodeURIComponent(slugOrId)}`, {
+      credentials: "include",
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error(`Get property failed: ${res.statusText}`);
+    return res.json();
+  } catch (err) {
+    if (err instanceof TypeError && err.message.includes("fetch")) {
+      throw new Error("Unable to load property details. Please ensure the backend is running.");
+    }
+    throw err;
+  }
 }
 
 export async function apiUploadImages(formData: FormData) {
-  const res = await fetch(`${API_BASE_URL}/api/upload/images`, {
-    method: "POST",
-    body: formData,
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error(`Image upload failed: ${res.statusText}`);
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/upload/images`, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error(`Image upload failed: ${res.statusText}`);
+    return res.json();
+  } catch (err) {
+    if (err instanceof TypeError && err.message.includes("fetch")) {
+      throw new Error("Unable to upload images. Please ensure the backend server is running.");
+    }
+    throw err;
+  }
 }
+

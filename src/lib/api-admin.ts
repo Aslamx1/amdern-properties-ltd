@@ -45,15 +45,22 @@ function clearAdminToken(): void {
 
 async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getAdminToken();
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers ?? {}),
-    },
-    ...options,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers ?? {}),
+      },
+      ...options,
+    });
+  } catch (networkErr) {
+    throw new Error(
+      "Unable to connect to the backend server. Please verify the server is running on port 5000."
+    );
+  }
 
   if (!res.ok) {
     let message = `HTTP ${res.status}`;
@@ -426,3 +433,45 @@ export async function apiAdminMarkNotificationRead(id: string): Promise<{ messag
 export async function apiAdminMarkAllNotificationsRead(): Promise<{ message: string }> {
   return apiRequest<{ message: string }>("/api/admin/notifications/read-all", { method: "POST" });
 }
+
+/* -------------------------------------------------------------------------- */
+/* Billing & Payments                                                         */
+/* -------------------------------------------------------------------------- */
+export interface AdminPaymentTransaction {
+  id: string;
+  userId: string;
+  userEmail: string | null;
+  type: string;
+  item: string;
+  amount: number;
+  currency: string;
+  method: string;
+  status: string;
+  statusCode: string | null;
+  statusMessage: string | null;
+  externalId: string;
+  payer: string;
+  payerName: string | null;
+  period: string | null;
+  listingId: string | null;
+  listingRef: string | null;
+  fulfillmentStatus: string;
+  createdAt: string;
+  paidAt: string | null;
+}
+
+export async function apiAdminGetPayments(): Promise<{ payments: AdminPaymentTransaction[] }> {
+  return apiRequest<{ payments: AdminPaymentTransaction[] }>("/api/admin/payments");
+}
+
+export async function apiAdminApprovePayment(
+  id: string,
+): Promise<{ message: string; payment: AdminPaymentTransaction }> {
+  return apiRequest<{ message: string; payment: AdminPaymentTransaction }>(
+    `/api/admin/payments/${encodeURIComponent(id)}/approve`,
+    {
+      method: "POST",
+    },
+  );
+}
+

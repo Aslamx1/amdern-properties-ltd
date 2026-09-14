@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import prisma from "../config/db";
 import { Role } from "@prisma/client";
+import { fulfillPayment } from "./payment.controller";
 
 /**
  * Admin Controller — all endpoints read REAL data from the PostgreSQL database.
@@ -825,3 +826,81 @@ export async function deleteAdminProperty(req: Request, res: Response): Promise<
     res.status(500).json({ error: "Failed to delete property" });
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Billing & Payment moderation for admin                                     */
+/* -------------------------------------------------------------------------- */
+export async function getAdminPayments(req: Request, res: Response): Promise<void> {
+  try {
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+    const offset = Number(req.query.offset) || 0;
+    const status = req.query.status as string | undefined;
+
+    const where: any = {};
+    if (status && status !== "all") {
+      where.status = status;
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.paymentTransaction.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: offset,
+        take: limit,
+      }),
+      prisma.paymentTransaction.count({ where }),
+    ]);
+
+    res.json({
+      payments: items,
+      total,
+      limit,
+      offset,
+    });
+  } catch (error) {
+    console.error("[GetAdminPayments Error]:", error);
+    res.status(500).json({ error: "Failed to load payment transactions" });
+  }
+}
+
+export async function approveAdminPayment(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    let payment = await prisma.paymentTransaction.findUnique({
+      where: { id },
+    });
+
+    if (!payment) {
+      payment = await prisma.paymentTransaction.findFirst({
+        where: { externalId: id },
+      });
+    }
+
+    if (!payment) {
+      res.status(404).json({ error: "Payment transaction not found" });
+      return;
+    }
+
+    const updated = await prisma.paymentTransaction.update({
+      where: { id: payment.id },
+      data: {
+        status: "Success",
+        statusCode: "admin_approved",
+        statusMessage: `Payment approved manually by admin ${req.user?.email || "Admin"}`,
+        paidAt: new Date(),
+      },
+    });
+
+    await fulfillPayment(updated);
+
+    res.json({
+      message: "Payment approved and service activated successfully",
+      payment: updated,
+    });
+  } catch (error) {
+    console.error("[ApproveAdminPayment Error]:", error);
+    res.status(500).json({ error: "Failed to approve payment transaction" });
+  }
+}
+

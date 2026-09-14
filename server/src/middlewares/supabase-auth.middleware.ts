@@ -21,13 +21,19 @@ export async function authenticateSupabaseToken(
   next: NextFunction
 ): Promise<void> {
   try {
+    const cookieToken = req.cookies?.token;
     const authorization = req.headers.authorization;
-    if (!authorization?.startsWith("Bearer ")) {
+
+    let token = typeof cookieToken === "string" ? cookieToken : undefined;
+
+    if (!token && authorization?.startsWith("Bearer ")) {
+      token = authorization.slice(7).trim();
+    }
+
+    if (!token) {
       res.status(401).json({ error: "Authentication required" });
       return;
     }
-
-    const token = authorization.slice(7).trim();
 
     // 1. Check if token is a local backend JWT
     try {
@@ -60,7 +66,7 @@ export async function authenticateSupabaseToken(
       method: "GET",
       headers: {
         apikey: supabaseKey,
-        Authorization: authorization,
+        Authorization: authorization || `Bearer ${token}`,
       },
     });
 

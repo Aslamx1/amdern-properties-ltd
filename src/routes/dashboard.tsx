@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useLocation, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { getMe, logout } from "@/lib/api-auth";
 import {
   LayoutDashboard,
   Home,
@@ -24,8 +24,9 @@ import { loadProfileForUser } from "@/lib/user-profile";
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    try {
+      await getMe();
+    } catch {
       throw redirect({ to: "/signin" });
     }
   },
@@ -56,19 +57,15 @@ function DashboardLayout() {
 
   useEffect(() => {
     let cancelled = false;
+
     const init = async () => {
       try {
-        const { data } = await supabase.auth.getUser();
+        const response = await getMe();
         if (!cancelled) {
-          if (data.user) {
-            const profile = await loadProfileForUser(data.user);
-            setUser({
-              email: data.user.email ?? undefined,
-              fullName: profile?.full_name ?? undefined,
-            });
-          } else {
-            setUser(null);
-          }
+          setUser({
+            email: response.user.email ?? undefined,
+            fullName: response.user.name ?? undefined,
+          });
           setChecking(false);
         }
       } catch (e) {
@@ -79,30 +76,10 @@ function DashboardLayout() {
         }
       }
     };
+
     void init();
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!cancelled) {
-        try {
-          if (session?.user) {
-            const profile = await loadProfileForUser(session.user);
-            setUser({
-              email: session.user.email ?? undefined,
-              fullName: profile?.full_name ?? undefined,
-            });
-          } else {
-            setUser(null);
-          }
-        } catch (e) {
-          console.error("Auth state change failed:", e);
-          if (!cancelled) setUser(null);
-        }
-      }
-    });
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
     };
   }, []);
 
@@ -113,8 +90,11 @@ function DashboardLayout() {
   }, [checking, user]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/";
+    try {
+      await logout();
+    } finally {
+      window.location.href = "/";
+    }
   };
 
   const getUserEmail = () => user?.email || "User";

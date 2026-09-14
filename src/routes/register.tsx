@@ -91,7 +91,7 @@ function Register() {
         name: fullName,
         email,
         password,
-        role: accountType,
+        role: accountType.toUpperCase() as "SEEKER" | "OWNER" | "AGENT" | "DEVELOPER" | "ADMIN",
         privacyPolicyAgreed: privacyAgreed,
         marketingConsent,
       };

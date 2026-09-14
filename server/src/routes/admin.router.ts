@@ -15,6 +15,8 @@ import {
   getAdminNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  getAdminPayments,
+  approveAdminPayment,
 } from "../controllers/admin.controller";
 import { authenticateToken } from "../middlewares/auth.middleware";
 import { requireRole } from "../middlewares/auth.middleware";
@@ -57,5 +59,9 @@ adminRouter.patch("/enquiries/:id/status", updateEnquiryStatus);
 // User management
 adminRouter.get("/users", getUsers);
 adminRouter.delete("/users/:id", deleteUser);
+
+// Payments & Billing moderation
+adminRouter.get("/payments", getAdminPayments);
+adminRouter.post("/payments/:id/approve", approveAdminPayment);
 
 export default adminRouter;

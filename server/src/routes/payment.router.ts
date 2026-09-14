@@ -4,12 +4,12 @@ import {
   handlePaymentCallback,
   initiatePayment,
 } from "../controllers/payment.controller";
-import { authenticateSupabaseToken } from "../middlewares/supabase-auth.middleware";
+import { authenticateToken } from "../middlewares/auth.middleware";
 
 export const paymentRouter = Router();
 
-paymentRouter.post("/initiate", authenticateSupabaseToken, initiatePayment);
-paymentRouter.get("/status/:id", authenticateSupabaseToken, getPaymentStatus);
+paymentRouter.post("/initiate", authenticateToken, initiatePayment);
+paymentRouter.get("/status/:id", authenticateToken, getPaymentStatus);
 paymentRouter.post("/callback", handlePaymentCallback);
 
 export default paymentRouter;
