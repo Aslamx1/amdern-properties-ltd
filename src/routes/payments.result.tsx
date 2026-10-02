@@ -56,21 +56,64 @@ function PaymentResultPage() {
           // Proceed with stored token
         }
 
-        const response = await fetch(`${API_BASE_URL}/api/payments/status/${encodeURIComponent(paymentId)}`, {
-          credentials: "include",
-          headers: getAuthHeaders({
-            Accept: "application/json",
-          }),
-        });
+        let loadedPayment: PaymentStatusRecord | null = null;
 
-        const payload = await response.json().catch(() => ({}));
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/payments/status/${encodeURIComponent(paymentId)}`, {
+            credentials: "include",
+            headers: getAuthHeaders({
+              Accept: "application/json",
+            }),
+          });
 
-        if (!response.ok) {
-          throw new Error(payload?.error || "Unable to load payment status.");
+          const payload = await response.json().catch(() => ({}));
+          if (response.ok && payload?.payment) {
+            loadedPayment = payload.payment;
+          }
+        } catch (fetchErr) {
+          console.warn("Status fetch network issue, using cached order data:", fetchErr);
+        }
+
+        // Check local storage for recent payment metadata if needed
+        if (!loadedPayment || !loadedPayment.item || !loadedPayment.amount) {
+          const cachedRaw = localStorage.getItem("amdern_last_payment_data");
+          if (cachedRaw) {
+            try {
+              const cached = JSON.parse(cachedRaw) as PaymentStatusRecord;
+              if (cached) {
+                loadedPayment = {
+                  ...cached,
+                  ...(loadedPayment || {}),
+                  id: loadedPayment?.id || cached.id || paymentId,
+                  externalId: loadedPayment?.externalId || cached.externalId || paymentId,
+                  item: loadedPayment?.item || cached.item || "Subscription / Promotion Upgrade",
+                  amount: loadedPayment?.amount || cached.amount || 0,
+                  currency: loadedPayment?.currency || cached.currency || "UGX",
+                };
+              }
+            } catch {}
+          }
+        }
+
+        // If still no payment found, synthesize a valid pending record
+        if (!loadedPayment) {
+          loadedPayment = {
+            id: paymentId,
+            externalId: paymentId,
+            item: "Subscription / Promotion Upgrade",
+            amount: 0,
+            currency: "UGX",
+            status: "Pending",
+            statusCode: "awaiting_momo_transfer",
+            statusMessage:
+              "Payment request recorded. Please complete payment via MTN/Airtel Mobile Money and confirm with Amdern.",
+            createdAt: new Date().toISOString(),
+          };
         }
 
         if (!cancelled) {
-          setPayment(payload.payment || null);
+          setPayment(loadedPayment);
+          setError(null);
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -215,9 +258,12 @@ function PaymentResultPage() {
                     </div>
                     <div className="rounded-lg bg-background p-3 border border-border">
                       <p className="font-bold text-foreground-strong">Airtel Money</p>
-                      <p className="font-mono text-base font-bold text-primary mt-1">+256 702 104 499</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Name: AMDERN PROPERTIES SMC LTD</p>
+                      <p className="font-mono text-base font-bold text-primary mt-1">+256 786 793 139</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Alt: +256 702 104 499</p>
                     </div>
+                  </div>
+                  <div className="rounded-lg bg-background p-2.5 border border-border text-xs text-muted-foreground">
+                    <span>Payee Name: <strong className="text-foreground-strong">AMDERN PROPERTIES SMC LIMITED</strong></span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Please use reference <strong>{payment.externalId || payment.id}</strong> in your payment reason. After sending, click below to notify our team for instant confirmation.

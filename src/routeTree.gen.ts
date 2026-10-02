@@ -79,7 +79,9 @@ import { Route as PaymentsResultRouteImport } from './routes/payments.result'
 import { Route as PropertyIdRouteImport } from './routes/property.$id'
 import { Route as RequestsNewRouteImport } from './routes/requests.new'
 import { Route as AdminListingsNewRouteImport } from './routes/admin.listings.new'
+import { Route as ApiPaymentsInitiateRouteImport } from './routes/api.payments.initiate'
 import { Route as DashboardListingsNewRouteImport } from './routes/dashboard.listings.new'
+import { Route as ApiPaymentsStatusIdRouteImport } from './routes/api.payments.status.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -431,10 +433,20 @@ const AdminListingsNewRoute = AdminListingsNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AdminListingsRoute,
 } as any)
+const ApiPaymentsInitiateRoute = ApiPaymentsInitiateRouteImport.update({
+  id: '/api/payments/initiate',
+  path: '/api/payments/initiate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardListingsNewRoute = DashboardListingsNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => DashboardListingsRoute,
+} as any)
+const ApiPaymentsStatusIdRoute = ApiPaymentsStatusIdRouteImport.update({
+  id: '/api/payments/status/$id',
+  path: '/api/payments/status/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -508,7 +520,9 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/admin/listings/new': typeof AdminListingsNewRoute
+  '/api/payments/initiate': typeof ApiPaymentsInitiateRoute
   '/dashboard/listings/new': typeof DashboardListingsNewRoute
+  '/api/payments/status/$id': typeof ApiPaymentsStatusIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -579,7 +593,9 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/admin/listings/new': typeof AdminListingsNewRoute
+  '/api/payments/initiate': typeof ApiPaymentsInitiateRoute
   '/dashboard/listings/new': typeof DashboardListingsNewRoute
+  '/api/payments/status/$id': typeof ApiPaymentsStatusIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -653,7 +669,9 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/admin/listings/new': typeof AdminListingsNewRoute
+  '/api/payments/initiate': typeof ApiPaymentsInitiateRoute
   '/dashboard/listings/new': typeof DashboardListingsNewRoute
+  '/api/payments/status/$id': typeof ApiPaymentsStatusIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -728,7 +746,9 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/dashboard/'
     | '/admin/listings/new'
+    | '/api/payments/initiate'
     | '/dashboard/listings/new'
+    | '/api/payments/status/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -799,7 +819,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/admin/listings/new'
+    | '/api/payments/initiate'
     | '/dashboard/listings/new'
+    | '/api/payments/status/$id'
   id:
     | '__root__'
     | '/'
@@ -872,7 +894,9 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/dashboard/'
     | '/admin/listings/new'
+    | '/api/payments/initiate'
     | '/dashboard/listings/new'
+    | '/api/payments/status/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -914,6 +938,8 @@ export interface RootRouteChildren {
   MarketTrendsPricesRoute: typeof MarketTrendsPricesRoute
   MarketTrendsReportsRoute: typeof MarketTrendsReportsRoute
   PropertyIdRoute: typeof PropertyIdRoute
+  ApiPaymentsInitiateRoute: typeof ApiPaymentsInitiateRoute
+  ApiPaymentsStatusIdRoute: typeof ApiPaymentsStatusIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1408,12 +1434,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminListingsNewRouteImport
       parentRoute: typeof AdminListingsRoute
     }
+    '/api/payments/initiate': {
+      id: '/api/payments/initiate'
+      path: '/api/payments/initiate'
+      fullPath: '/api/payments/initiate'
+      preLoaderRoute: typeof ApiPaymentsInitiateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/listings/new': {
       id: '/dashboard/listings/new'
       path: '/new'
       fullPath: '/dashboard/listings/new'
       preLoaderRoute: typeof DashboardListingsNewRouteImport
       parentRoute: typeof DashboardListingsRoute
+    }
+    '/api/payments/status/$id': {
+      id: '/api/payments/status/$id'
+      path: '/api/payments/status/$id'
+      fullPath: '/api/payments/status/$id'
+      preLoaderRoute: typeof ApiPaymentsStatusIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -1607,6 +1647,8 @@ const rootRouteChildren: RootRouteChildren = {
   MarketTrendsPricesRoute: MarketTrendsPricesRoute,
   MarketTrendsReportsRoute: MarketTrendsReportsRoute,
   PropertyIdRoute: PropertyIdRoute,
+  ApiPaymentsInitiateRoute: ApiPaymentsInitiateRoute,
+  ApiPaymentsStatusIdRoute: ApiPaymentsStatusIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
