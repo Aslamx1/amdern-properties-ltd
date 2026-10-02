@@ -52,8 +52,12 @@ function SignIn() {
     setBusy(true);
     setError(null);
     try {
-      await login(email, password);
-      navigate({ to: "/dashboard" });
+      const res = await login(email, password);
+      if (res.user.role === "ADMIN") {
+        navigate({ to: "/admin" });
+      } else {
+        navigate({ to: "/dashboard" });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "An unexpected error occurred. Please try again.");
     } finally {

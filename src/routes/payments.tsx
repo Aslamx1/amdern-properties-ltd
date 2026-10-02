@@ -31,6 +31,7 @@ type PaymentSearch = {
 
 export const Route = createFileRoute("/payments")({
   beforeLoad: async () => {
+    if (typeof window === "undefined") return;
     try {
       await getMe();
     } catch {

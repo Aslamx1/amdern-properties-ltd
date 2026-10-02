@@ -24,6 +24,7 @@ import { loadProfileForUser } from "@/lib/user-profile";
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
+    if (typeof window === "undefined") return;
     try {
       await getMe();
     } catch {

@@ -3,6 +3,7 @@ import { getMe } from "@/lib/api-auth";
 import type { AccountType } from "@/lib/auth";
 
 export async function requireAuth() {
+  if (typeof window === "undefined") return null as any;
   try {
     const response = await getMe();
     return {
